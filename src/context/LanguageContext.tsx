@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import type { Lang } from "@/lib/translations";
 
 interface LanguageContextType {
@@ -18,14 +18,36 @@ const LanguageContext = createContext<LanguageContextType>({
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>("ar");
 
-  const setLang = (l: Lang) => {
-    setLangState(l);
+  // ✅ تحميل اللغة من localStorage أول ما الموقع يفتح
+  useEffect(() => {
+    const savedLang = localStorage.getItem("lang") as Lang;
+    if (savedLang) {
+      applyLang(savedLang);
+      setLangState(savedLang);
+    } else {
+      applyLang("ar");
+    }
+  }, []);
+
+  const applyLang = (l: Lang) => {
     document.documentElement.lang = l;
     document.documentElement.dir = l === "ar" ? "rtl" : "ltr";
   };
 
+  const setLang = (l: Lang) => {
+    setLangState(l);
+    applyLang(l);
+    localStorage.setItem("lang", l); // ✅ حفظ اللغة
+  };
+
   return (
-    <LanguageContext.Provider value={{ lang, setLang, isRTL: lang === "ar" }}>
+    <LanguageContext.Provider
+      value={{
+        lang,
+        setLang,
+        isRTL: lang === "ar",
+      }}
+    >
       {children}
     </LanguageContext.Provider>
   );
