@@ -59,6 +59,18 @@ export async function POST(req: NextRequest) {
     const imageFiles = formData.getAll("images") as File[];
     const imageUrls: string[] = [];
 
+    if (
+      imageFiles.length > 0 &&
+      (!process.env.CLOUDINARY_CLOUD_NAME ||
+        !process.env.CLOUDINARY_API_KEY ||
+        !process.env.CLOUDINARY_API_SECRET)
+    ) {
+      return NextResponse.json(
+        { error: "Cloudinary environment variables are missing on server." },
+        { status: 500 }
+      );
+    }
+
     for (const file of imageFiles) {
       if (file && file.size > 0) {
         const url = await uploadImageToCloudinary(file);
@@ -81,8 +93,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(chalet, { status: 201 });
   } catch (error) {
     console.error("POST /api/chalets error:", error);
+    const details =
+      error instanceof Error ? error.message : "Unknown server error";
     return NextResponse.json(
-      { error: "Failed to create chalet. Check DATABASE_URL and CLOUDINARY_* env vars." },
+      { error: `Failed to create chalet: ${details}` },
       { status: 500 }
     );
   }

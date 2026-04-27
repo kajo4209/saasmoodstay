@@ -157,7 +157,16 @@ function Modal({
           body: formData,
         });
 
-        if (!res.ok) throw new Error("Failed to create chalet");
+        if (!res.ok) {
+          let message = "Failed to create chalet";
+          try {
+            const data = (await res.json()) as { error?: string };
+            if (data?.error) message = data.error;
+          } catch {
+            // ignore json parse errors and keep fallback message
+          }
+          throw new Error(message);
+        }
       }
 
       setSuccess(isEdit ? "تم حفظ التعديلات" : "تمت إضافة الشاليه بنجاح");
@@ -165,7 +174,7 @@ function Modal({
       onClose();
     } catch (err) {
       console.error("Save chalet error:", err);
-      setError("حدث خطأ، يرجى المحاولة مرة أخرى");
+      setError(err instanceof Error ? err.message : "حدث خطأ، يرجى المحاولة مرة أخرى");
     } finally {
       setSaving(false);
     }
