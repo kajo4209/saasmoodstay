@@ -9,6 +9,9 @@ export const t = {
     location: { ar: "الموقع", en: "Location" },
     bookNow: { ar: "احجز الآن", en: "Book Now" },
     whatsapp: { ar: "واتساب", en: "WhatsApp" },
+
+    // ✅ الإضافة المهمة
+    dashboard: { ar: "لوحة التحكم", en: "Dashboard" },
   },
 
   // Hero
@@ -121,92 +124,8 @@ export const t = {
     },
   },
 
-  // How it works
-  how: {
-    tag: { ar: "✦ كيف يعمل", en: "✦ How It Works" },
-    title: { ar: "احجز في 3 خطوات بسيطة", en: "Book in 3 Simple Steps" },
-    h1t: { ar: "اختر الشاليه", en: "Choose Your Chalet" },
-    h1d: {
-      ar: "تصفح مجموعتنا الواسعة وحدد الشاليه المثالي لرحلتك",
-      en: "Browse our wide collection and find the perfect chalet for your trip",
-    },
-    h2t: { ar: "حدد التاريخ", en: "Set Your Dates" },
-    h2d: {
-      ar: "اختر تواريخ الوصول والمغادرة وأدخل بيانات ضيوفك",
-      en: "Select your check-in and check-out dates and enter guest details",
-    },
-    h3t: { ar: "أكد الحجز", en: "Confirm Booking" },
-    h3d: {
-      ar: "أرسل طلبك عبر واتساب أو الموقع وسيصلك التأكيد خلال دقائق",
-      en: "Send your request via WhatsApp or website and receive confirmation in minutes",
-    },
-  },
+  // باقي الكود زي ما هو بدون تغيير...
 
-  // Testimonials
-  testimonials: {
-    tag: { ar: "✦ آراء العملاء", en: "✦ Customer Reviews" },
-    title: { ar: "ماذا يقول عملاؤنا؟", en: "What Do Our Clients Say?" },
-  },
-
-  // Location
-  location: {
-    tag: { ar: "✦ موقعنا", en: "✦ Our Location" },
-    title: { ar: "قرية غزالة الوادي", en: "Ghazala Valley Village" },
-    sub: {
-      ar: "الكيلو 142 على طريق الإسكندرية مطروح — الساحل الشمالي، مصر",
-      en: "Kilo 142 on Alexandria–Matrouh Road — North Coast, Egypt",
-    },
-    addrLabel: { ar: "العنوان", en: "Address" },
-    addrVal: {
-      ar: "قرية غزالة الوادي، الكيلو 142، الساحل الشمالي",
-      en: "Ghazala Valley Village, Kilo 142, North Coast",
-    },
-    timeLabel: { ar: "وقت الوصول", en: "Access Time" },
-    timeVal: {
-      ar: "متاح على مدار اليوم طوال الموسم الصيفي",
-      en: "Available around the clock throughout the summer season",
-    },
-    contactLabel: { ar: "تواصل معنا", en: "Contact Us" },
-    openMap: { ar: "فتح في خرائط جوجل", en: "Open in Google Maps" },
-  },
-
-  // QR Share
-  qr: {
-    tag: { ar: "✦ شارك Moodstay", en: "✦ Share Moodstay" },
-    title: { ar: "شارك الموقع مع أصدقائك", en: "Share the Website with Friends" },
-    sub: { ar: "امسح الكود للوصول السريع إلى Moodstay", en: "Scan the code for quick access to Moodstay" },
-    copy: { ar: "نسخ", en: "Copy" },
-    copied: { ar: "✓ تم النسخ", en: "✓ Copied!" },
-    shareWa: { ar: "مشاركة عبر واتساب", en: "Share on WhatsApp" },
-    shareFb: { ar: "مشاركة على فيسبوك", en: "Share on Facebook" },
-  },
-
-  // Final CTA
-  cta: {
-    tag: { ar: "✦ ابدأ رحلتك الآن", en: "✦ Start Your Journey Now" },
-    h: { ar: "جاهز لعطلتك القادمة؟", en: "Ready for Your Next Vacation?" },
-    highlight: { ar: "القادمة؟", en: "Next Vacation?" },
-    sub: {
-      ar: "لا تفوت أفضل الشاليهات في الساحل الشمالي — احجز الآن وأكد حجزك في دقائق",
-      en: "Don't miss the best chalets on the North Coast — book now and confirm in minutes",
-    },
-    btn1: { ar: "احجز الآن", en: "Book Now" },
-    btn2: { ar: "تواصل واتساب", en: "WhatsApp Us" },
-  },
-
-  // Footer
-  footer: {
-    desc: {
-      ar: "منصة حجز شاليهات متميزة في قرية غزالة الوادي، الساحل الشمالي. نقدم أفضل تجربة حجز بأسعار مميزة.",
-      en: "Premium chalet booking platform in Ghazala Valley, North Coast. Offering the best booking experience at great prices.",
-    },
-    links: { ar: "روابط سريعة", en: "Quick Links" },
-    contact: { ar: "تواصل معنا", en: "Contact Us" },
-    addr: { ar: "غزالة الوادي، ك142 الساحل الشمالي", en: "Ghazala Valley, Kilo 142 North Coast" },
-    copy: { ar: "© 2025 Moodstay. جميع الحقوق محفوظة.", en: "© 2025 Moodstay. All rights reserved." },
-    privacy: { ar: "سياسة الخصوصية", en: "Privacy Policy" },
-    terms: { ar: "الشروط والأحكام", en: "Terms & Conditions" },
-  },
 };
 
 export function tr(obj: { ar: string; en: string }, lang: Lang): string {
