@@ -23,13 +23,28 @@ model Chalet {
 }
 
 model Booking {
-  id        Int      @id @default(autoincrement())
-  chaletId  Int
-  chalet    Chalet   @relation(fields: [chaletId], references: [id])
-  guestName String
-  phone     String
-  checkIn   DateTime
-  checkOut  DateTime
+  id         Int      @id @default(autoincrement())
+
+  // علاقة الشاليه
+  chaletId   Int
+  chalet     Chalet   @relation(fields: [chaletId], references: [id])
+
+  // بيانات العميل
+  guestName  String
+  phone      String
+
+  // تواريخ الحجز
+  checkIn    DateTime
+  checkOut   DateTime
+
+  // الحالة
+  status     String   @default("pending") // pending | confirmed | cancelled
+
+  // الدفع
+  payment    String   @default("cash") // cash | online
+
+  // السعر
   totalPrice Int
-  createdAt DateTime @default(now())
+
+  createdAt  DateTime @default(now())
 }
