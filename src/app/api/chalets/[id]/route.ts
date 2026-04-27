@@ -1,10 +1,6 @@
-﻿// src/app/api/chalets/[id]/route.ts
-import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
-const prisma = new PrismaClient();
-
-// GET /api/chalets/:id
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -23,7 +19,6 @@ export async function GET(
   return NextResponse.json(chalet);
 }
 
-// PUT /api/chalets/:id
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -51,7 +46,6 @@ export async function PUT(
   }
 }
 
-// DELETE /api/chalets/:id
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
