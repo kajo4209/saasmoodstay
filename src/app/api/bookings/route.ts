@@ -1,12 +1,7 @@
-// src/app/api/bookings/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
-const prisma = new PrismaClient();
-
-// ────────────────────────────────────────────────
-// GET /api/bookings — جيب كل الحجوزات
-// ────────────────────────────────────────────────
+// GET /api/bookings
 export async function GET() {
   try {
     const bookings = await prisma.booking.findMany({
@@ -20,66 +15,64 @@ export async function GET() {
   }
 }
 
-// ────────────────────────────────────────────────
-// POST /api/bookings — إضافة حجز جديد
-// ────────────────────────────────────────────────
+// POST /api/bookings
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-
-    const { chaletId, guestName, phone, checkIn, checkOut } = body;
+    const { chaletId, guestName, phone, checkIn, checkOut, notes, features } = body;
 
     if (!chaletId || !guestName || !phone || !checkIn || !checkOut) {
-      return NextResponse.json(
-        { error: "يرجى ملء جميع الحقول" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "يرجى ملء جميع الحقول المطلوبة" }, { status: 400 });
     }
 
-    // ─── التحقق من توفر الشاليه في هذه الفترة ───
+    const checkInDate  = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+
+    // ─── تحقق: لا يوجد حجز مؤكد في نفس الفترة ───
     const conflict = await prisma.booking.findFirst({
       where: {
         chaletId: Number(chaletId),
-        OR: [
-          {
-            checkIn:  { lte: new Date(checkOut) },
-            checkOut: { gte: new Date(checkIn) },
-          },
-        ],
+        status: { in: ["pending", "confirmed"] },  // نحجب pending و confirmed فقط
+        checkIn:  { lt: checkOutDate },
+        checkOut: { gt: checkInDate },
       },
     });
 
     if (conflict) {
       return NextResponse.json(
-        { error: "الشاليه محجوز في هذه الفترة" },
+        { error: "الشاليه محجوز في هذه الفترة، يرجى اختيار تواريخ أخرى" },
         { status: 409 }
       );
     }
 
-    // ─── حساب الإجمالي ───
-    const chalet = await prisma.chalet.findUnique({
-      where: { id: Number(chaletId) },
-    });
+    // ─── جيب بيانات الشاليه ───
+    const chalet = await prisma.chalet.findUnique({ where: { id: Number(chaletId) } });
+    if (!chalet) return NextResponse.json({ error: "الشاليه غير موجود" }, { status: 404 });
 
-    if (!chalet) {
-      return NextResponse.json({ error: "الشاليه غير موجود" }, { status: 404 });
-    }
-
-    const nights = Math.ceil(
-      (new Date(checkOut).getTime() - new Date(checkIn).getTime()) /
-        (1000 * 60 * 60 * 24)
+    // ─── احسب الليالي والسعر ───
+    const nights = Math.max(
+      1,
+      Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
     );
     const totalPrice = nights * chalet.price;
+    const deposit    = Math.round(totalPrice * 0.15);
 
     const booking = await prisma.booking.create({
       data: {
-        chaletId:  Number(chaletId),
+        chaletId:   Number(chaletId),
         guestName,
         phone,
-        checkIn:   new Date(checkIn),
-        checkOut:  new Date(checkOut),
+        checkIn:    checkInDate,
+        checkOut:   checkOutDate,
+        nights,
         totalPrice,
+        deposit,
+        notes:      notes || "",
+        features:   Array.isArray(features) ? features.join("، ") : (features || ""),
+        status:     "pending",
+        payment:    "cash",
       },
+      include: { chalet: { select: { name: true } } },
     });
 
     return NextResponse.json(booking, { status: 201 });

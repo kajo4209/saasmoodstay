@@ -13,38 +13,28 @@ model Chalet {
   price       Int
   rooms       Int
   description String
-  features    String    // مخزنة كـ string مفصولة بفواصل
-  type        String    @default("family") // "family" | "youth"
-  images      String[]  // مسارات الصور
+  features    String
+  type        String    @default("family")
+  images      String[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
   bookings    Booking[]
 }
 
 model Booking {
   id         Int      @id @default(autoincrement())
-
-  // علاقة الشاليه
   chaletId   Int
   chalet     Chalet   @relation(fields: [chaletId], references: [id])
-
-  // بيانات العميل
   guestName  String
   phone      String
-
-  // تواريخ الحجز
   checkIn    DateTime
   checkOut   DateTime
-
-  // الحالة
-  status     String   @default("pending") // pending | confirmed | cancelled
-
-  // الدفع
-  payment    String   @default("cash") // cash | online
-
-  // السعر
+  nights     Int      @default(0)
   totalPrice Int
-
+  deposit    Int      @default(0)
+  notes      String   @default("")
+  features   String   @default("")
+  status     String   @default("pending")
+  payment    String   @default("cash")
   createdAt  DateTime @default(now())
 }
