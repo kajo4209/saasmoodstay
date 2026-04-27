@@ -377,18 +377,33 @@ function ChaletRow({
 export default function ChaletsPage() {
   const [chalets, setChalets] = useState<Chalet[]>([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Chalet | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
 
   const load = async () => {
     setLoading(true);
+    setApiError("");
     try {
       const res = await fetch("/api/chalets", { cache: "no-store" });
-      const data = (await res.json()) as Chalet[];
-      setChalets(data);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error((data as { error?: string })?.error || "فشل في تحميل الشاليهات");
+      }
+
+      if (Array.isArray(data)) {
+        setChalets(data as Chalet[]);
+      } else {
+        console.error("Unexpected /api/chalets response:", data);
+        setChalets([]);
+        setApiError("استجابة غير متوقعة من الخادم");
+      }
     } catch (err) {
       console.error("Load chalets error:", err);
+      setChalets([]);
+      setApiError("تعذر تحميل الشاليهات الآن. تحقق من إعدادات قاعدة البيانات على Vercel.");
     } finally {
       setLoading(false);
     }
@@ -438,6 +453,12 @@ export default function ChaletsPage() {
           إضافة شاليه
         </button>
       </div>
+
+      {apiError && (
+        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {apiError}
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-4">
