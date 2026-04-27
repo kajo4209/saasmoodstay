@@ -41,7 +41,7 @@ export function Footer() {
   const { lang } = useLang();
 
   const links = [
-    { href: "#chalets", label: t.footer.links, sub: t.chalets.chalets ?? t.nav.chalets },
+    { href: "#chalets", label: t.footer.links, sub: t.nav.chalets },
     { href: "#features", label: null, sub: t.nav.why },
     { href: "#pricing", label: null, sub: t.nav.pricing },
     { href: "#location", label: null, sub: t.nav.location },
