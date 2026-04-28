@@ -102,7 +102,7 @@ export const t = {
       en: "Smart pricing system that fits all your needs and budget",
     },
     p1t: { ar: "أسعار نهاية الأسبوع", en: "Weekend Pricing" },
-    p1v: { ar: "+15%", en: "+15%" },
+    p1v: { ar: "+20%", en: "+20%" },
     p1d: {
       ar: "تطبق زيادة طفيفة على الجمعة والسبت لارتفاع الطلب في هذه الأيام",
       en: "A small premium applies on Fridays & Saturdays due to high demand",
