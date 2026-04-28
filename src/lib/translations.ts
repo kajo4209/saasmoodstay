@@ -204,7 +204,7 @@ export const t = {
     links: { ar: "روابط سريعة", en: "Quick Links" },
     contact: { ar: "تواصل معنا", en: "Contact Us" },
     addr: { ar: "غزالة الوادي، ك142 الساحل الشمالي", en: "Ghazala Valley, Kilo 142 North Coast" },
-    copy: { ar: "© 2025 Moodstay. جميع الحقوق محفوظة.", en: "© 2025 Moodstay. All rights reserved." },
+    copy: { ar: "© 2025 Moodstay. جميع الحقوق محفوظة.محمود سالم", en: "© 2025 Moodstay. All rights reserved.mahmoud salem" },
     privacy: { ar: "سياسة الخصوصية", en: "Privacy Policy" },
     terms: { ar: "الشروط والأحكام", en: "Terms & Conditions" },
   },
