@@ -21,8 +21,6 @@ interface BookingModalProps {
 }
 
 // ─── Date Helpers ─────────────────────────────────────────────────────────────
-function isFriday(date: Date)  { return date.getDay() === 5; }
-function isThursday(date: Date){ return date.getDay() === 4; }
 function isWeekend(date: Date) { const d = date.getDay(); return d === 4 || d === 5; }
 function isSeason(date: Date)  { const m = date.getMonth() + 1; return m >= 7 && m <= 8; }
 
@@ -100,7 +98,6 @@ function MiniCalendar({
 
   function cellClass(d: Date): string {
     const past     = d < today;
-    const fri      = isFriday(d);
     const conflict = isConflict(d);
     const inRange  = checkIn && checkOut && d > checkIn && d < checkOut;
     const isStart  = checkIn  && d.getTime() === checkIn.getTime();
@@ -108,7 +105,7 @@ function MiniCalendar({
     const weekend  = isWeekend(d);
     const season   = isSeason(d);
 
-    if (past || fri || conflict) return "bg-gray-100 text-gray-300 cursor-not-allowed text-xs line-through";
+    if (past || conflict) return "bg-gray-100 text-gray-300 cursor-not-allowed text-xs line-through";
     if (isStart || isEnd)        return "bg-sky-500 text-white rounded-full font-bold cursor-pointer text-xs";
     if (inRange)                 return "bg-sky-100 text-sky-700 cursor-pointer text-xs";
     if (weekend && season)       return "bg-orange-100 text-orange-700 cursor-pointer hover:bg-orange-200 text-xs";
@@ -118,7 +115,7 @@ function MiniCalendar({
   }
 
   function handleDay(d: Date) {
-    if (d < today || isFriday(d) || isConflict(d)) return;
+    if (d < today || isConflict(d)) return;
     onSelect(d);
   }
 
@@ -187,9 +184,12 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
   const [couponMsg, setCouponMsg] = useState("");
 
   // Status
-  const [status, setStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [bookedRanges, setBookedRanges] = useState<[string, string][]>([]);
+  
+  // WhatsApp redirect loading state
+  const [redirecting, setRedirecting] = useState(false);
 
   // Features from chalet
   const featureList = chalet.features
@@ -215,6 +215,31 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
   const couponDiscountAmt = pricing.finalTotal * (couponDiscount / 100);
   const grandTotal        = Math.round(pricing.finalTotal - couponDiscountAmt);
   const depositAmount     = Math.round(grandTotal * 0.15);
+
+  // Validate Egyptian WhatsApp number (starts with 01, exactly 11 digits)
+  function isValidEgyptianPhone(phoneNumber: string): boolean {
+    return /^01[0-9]{9}$/.test(phoneNumber);
+  }
+
+  // Format phone number for WhatsApp (handle 01xxx or 201xxx)
+  function formatPhoneForWhatsApp(phoneNumber: string): string | null {
+    let cleanPhone = phoneNumber.trim().replace(/\D/g, '');
+    
+    if (cleanPhone.startsWith('01') && cleanPhone.length === 11) {
+      return '2' + cleanPhone;
+    }
+    
+    if (cleanPhone.startsWith('20') && cleanPhone.length === 12) {
+      return cleanPhone;
+    }
+    
+    // Handle case where user wrote 2010... (20 + 10 digits)
+    if (cleanPhone.startsWith('201') && cleanPhone.length === 12) {
+      return cleanPhone;
+    }
+    
+    return null;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -268,38 +293,40 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
     setSelectedFeatures(prev => prev.includes(f) ? prev.filter(x => x !== f) : [...prev, f]);
   }
 
-  // WhatsApp
-  function openWhatsAppForBooking() {
-    const messageLines = [
-      `مرحبا، أرسلت طلب الحجز على الموقع.`,
-      `الشاليه: ${chalet.name}`,
-      `الاسم: ${name.trim()}`,
-      `الهاتف: ${phone.trim()}`,
-      `الدخول: ${checkIn ? fmt(checkIn) : "-"}`,
-      `الخروج: ${checkOut ? fmt(checkOut) : "-"}`,
-      `عدد الليالي: ${pricing.nights}`,
-      `الإجمالي: ${grandTotal.toLocaleString()} ج.م`,
-      `العربون المطلوب: ${depositAmount.toLocaleString()} ج.م`,
-      notes.trim() ? `ملاحظات: ${notes.trim()}` : "",
-      "",
-      "من فضلك ابعتلي رقم المحفظة الإلكترونية أو حساب InstaPay للتحويل.",
-    ].filter(Boolean);
-    const msg = encodeURIComponent(messageLines.join("\n"));
-    window.open(`https://wa.me/201201543050?text=${msg}`, "_blank");
-  }
-
-  // Submit
-  async function submitBooking(showSuccess = true): Promise<boolean> {
-    if (!name.trim() || !phone.trim() || !checkIn || !checkOut) {
-      setErrorMsg(isAr ? "يرجى تعبئة الاسم والهاتف وتحديد التواريخ" : "Please fill name, phone and select dates");
+  // Submit to dashboard first (all validation happens here)
+  async function submitBooking(): Promise<boolean> {
+    // Clear previous errors
+    setErrorMsg("");
+    
+    // Validation: Name
+    if (!name.trim()) {
+      setErrorMsg(isAr ? "يرجى تعبئة الاسم" : "Please enter your name");
       return false;
     }
+    
+    // Validation: Phone (WhatsApp number)
+    if (!phone.trim()) {
+      setErrorMsg(isAr ? "يرجى إدخال رقم الواتساب" : "Please enter your WhatsApp number");
+      return false;
+    }
+    
+    if (!isValidEgyptianPhone(phone.trim())) {
+      setErrorMsg(isAr ? "رقم واتساب غير صحيح. يجب أن يبدأ بـ 01 ويتكون من 11 رقمًا" : "Invalid WhatsApp number. Must start with 01 and be exactly 11 digits");
+      return false;
+    }
+    
+    // Validation: Dates
+    if (!checkIn || !checkOut) {
+      setErrorMsg(isAr ? "يرجى اختيار تاريخ الدخول والخروج" : "Please select check-in and check-out dates");
+      return false;
+    }
+    
     if (hasRangeConflict(checkIn, checkOut)) {
       setErrorMsg(isAr ? "الفترة المختارة غير متاحة (محجوزة بالفعل)." : "Selected date range is unavailable (already booked).");
       return false;
     }
-    setErrorMsg("");
-    setStatus("pending");
+    
+    setIsSubmitting(true);
 
     try {
       const res = await fetch("/api/bookings", {
@@ -318,32 +345,66 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
 
       if (res.status === 409) {
         const data = await res.json();
-        setStatus("error");
         setErrorMsg(data.error || (isAr ? "الشاليه محجوز في هذه الفترة" : "Chalet is booked for these dates"));
         return false;
       }
 
       if (!res.ok) {
         const data = await res.json();
-        setStatus("error");
         setErrorMsg(data.error || (isAr ? "حدث خطأ" : "An error occurred"));
         return false;
       }
 
-      setStatus(showSuccess ? "success" : "idle");
       return true;
     } catch {
-      setStatus("error");
       setErrorMsg(isAr ? "فشل الاتصال بالخادم" : "Connection failed");
       return false;
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
+  // Handle WhatsApp booking flow
   async function handleWhatsAppBooking() {
-    const ok = await submitBooking(false);
+    // Submit booking to dashboard first (includes all validation)
+    const ok = await submitBooking();
     if (!ok) return;
-    openWhatsAppForBooking();
-    setStatus("success");
+
+    // Format phone number for WhatsApp
+    const formattedPhone = formatPhoneForWhatsApp(phone);
+    if (!formattedPhone) {
+      setErrorMsg(isAr ? "رقم واتساب غير صحيح" : "Invalid WhatsApp number");
+      return;
+    }
+
+    // Show loading screen
+    setRedirecting(true);
+
+    // Prepare WhatsApp message (stronger, better conversion)
+    const messageLines = [
+      `أهلاً 👋`,
+      `أرغب في تأكيد حجز الشاليه التالي:`,
+      ``,
+      `🏖️ الشاليه: ${chalet.name}`,
+      `👤 الاسم: ${name.trim()}`,
+      `📞 الهاتف: ${phone.trim()}`,
+      `📅 الدخول: ${fmt(checkIn!)}`,
+      `📅 الخروج: ${fmt(checkOut!)}`,
+      `🌙 عدد الليالي: ${pricing.nights}`,
+      `💰 الإجمالي: ${grandTotal.toLocaleString()} ج.م`,
+      `💳 العربون المطلوب: ${depositAmount.toLocaleString()} ج.م (15%)`,
+      notes.trim() ? `📝 ملاحظات: ${notes.trim()}` : "",
+      ``,
+      `يرجى تأكيد الحجز وإرسال تفاصيل الدفع على InstaPay/Vodafone Cash.`,
+      `شكراً 🙏`,
+    ].filter(Boolean);
+    
+    const message = encodeURIComponent(messageLines.join("\n"));
+    
+    // Redirect to WhatsApp after 3 seconds
+    setTimeout(() => {
+      window.location.href = `https://wa.me/${formattedPhone}?text=${message}`;
+    }, 3000);
   }
 
   function handleBackdrop(e: React.MouseEvent<HTMLDivElement>) {
@@ -352,69 +413,50 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
 
   // ── Render ──
   return (
-    <div
-      id="booking-backdrop"
-      onClick={handleBackdrop}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
-    >
-      <div
-        className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full overflow-y-auto"
-        style={{ maxWidth: 760, maxHeight: "95vh", direction: isAr ? "rtl" : "ltr" }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 rounded-t-3xl">
-          <div>
-            <h2 className="font-black text-xl text-gray-800 dark:text-white">
-              {isAr ? "🏖️ احجز الآن" : "🏖️ Book Now"}
-            </h2>
-            <p className="text-sm text-sky-600 font-semibold">{chalet.name}</p>
+    <>
+      {/* Redirecting Loading Overlay */}
+      {redirecting && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}>
+          <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl text-center shadow-2xl max-w-sm mx-4">
+            <div className="text-5xl mb-4">📱</div>
+            <p className="mb-4 font-medium text-gray-800 dark:text-white text-lg">
+              {isAr ? "جاري تحويلك إلى واتساب لتأكيد الحجز..." : "Redirecting you to WhatsApp to confirm booking..."}
+            </p>
+            <div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-xs text-gray-400 mt-4">
+              {isAr ? "سيتم التحويل خلال 3 ثوانٍ" : "Redirecting in 3 seconds"}
+            </p>
           </div>
-          <button
-            onClick={onClose}
-            className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 text-xl transition-all"
-          >
-            ✕
-          </button>
         </div>
+      )}
 
-        {/* ── Success Screen ── */}
-        {status === "success" ? (
-          <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-            <div className="text-6xl mb-4">🎉</div>
-            <h3 className="text-2xl font-black text-gray-800 dark:text-white mb-2">
-              {isAr ? "تم إرسال طلب الحجز!" : "Booking Request Sent!"}
-            </h3>
-            <p className="text-gray-500 mb-1">
-              {isAr
-                ? "طلبك قيد المراجعة من فريق Moodstay."
-                : "Your request is under review by the Moodstay team."}
-            </p>
-            <p className="text-gray-400 text-sm mb-4">
-              {isAr
-                ? "سيتم التواصل معك على رقم الهاتف المسجل خلال ساعات قليلة."
-                : "We'll contact you at your registered phone within a few hours."}
-            </p>
-            <div className="px-6 py-3 rounded-full bg-amber-50 text-amber-700 font-bold text-sm inline-block mb-6">
-              ⏳ {isAr ? "قيد الانتظار للتأكيد" : "Pending Confirmation"}
+      <div
+        id="booking-backdrop"
+        onClick={handleBackdrop}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}
+      >
+        <div
+          className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full overflow-y-auto"
+          style={{ maxWidth: 760, maxHeight: "95vh", direction: isAr ? "rtl" : "ltr" }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 rounded-t-3xl">
+            <div>
+              <h2 className="font-black text-xl text-gray-800 dark:text-white">
+                {isAr ? "🏖️ احجز الآن" : "🏖️ Book Now"}
+              </h2>
+              <p className="text-sm text-sky-600 font-semibold">{chalet.name}</p>
             </div>
-            {/* Deposit reminder */}
-            {pricing.nights > 0 && (
-              <div className="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-800 mb-6 max-w-sm">
-                💰 {isAr
-                  ? `العربون المطلوب: ${depositAmount.toLocaleString()} ج.م (15% من الإجمالي ${grandTotal.toLocaleString()} ج.م)`
-                  : `Required deposit: ${depositAmount.toLocaleString()} EGP (15% of total ${grandTotal.toLocaleString()} EGP)`}
-              </div>
-            )}
-            <div className="flex gap-3">
-              
-              <button onClick={onClose} className="btn-primary px-8 py-3 text-sm">
-                {isAr ? "حسناً، شكراً!" : "OK, Thank you!"}
-              </button>
-            </div>
+            <button
+              onClick={onClose}
+              className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 text-xl transition-all"
+            >
+              ✕
+            </button>
           </div>
-        ) : (
+
           <div className="p-6 space-y-6">
 
             {/* ── 1. Calendar ── */}
@@ -450,7 +492,6 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
                 onSelect={handleDateSelect}
                 bookedRanges={bookedRanges}
               />
-              <p className="text-xs text-red-400 mt-2">⚠️ {isAr ? "الجمعة غير متاحة للدخول أو الخروج" : "Friday is not available for check-in or check-out"}</p>
             </div>
 
             {/* ── 2. Price Summary ── */}
@@ -493,7 +534,6 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
                     <span>{isAr ? "الإجمالي" : "Total"}</span>
                     <span>{grandTotal.toLocaleString()} {isAr ? "ج.م" : "EGP"}</span>
                   </div>
-                  {/* Deposit — auto-calculated 15% */}
                   <div className="flex justify-between text-sm font-bold text-amber-700 bg-amber-50 rounded-xl px-3 py-2">
                     <span>💳 {isAr ? "العربون المطلوب (15%)" : "Required Deposit (15%)"}</span>
                     <span>{depositAmount.toLocaleString()} {isAr ? "ج.م" : "EGP"}</span>
@@ -557,19 +597,22 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
                   <input
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    placeholder={isAr ? "محمد أحمد" : "John Doe"}
+                    placeholder={isAr ? "محمود سالم" : "John Doe"}
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-400 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">{isAr ? "رقم الهاتف *" : "Phone Number *"}</label>
+                  <label className="block text-xs text-gray-500 mb-1">{isAr ? "رقم الواتساب *" : "WhatsApp Number *"}</label>
                   <input
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
-                    placeholder="01xxxxxxxxx"
+                    placeholder="01234567890"
                     type="tel"
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-400 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                   />
+                  <p className="text-sm text-gray-500 mt-1">
+                    📱 {isAr ? "برجاء إدخال رقم الواتساب الصحيح ليتم تأكيد الحجز عليه" : "Please enter the correct WhatsApp number to confirm the booking"}
+                  </p>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-xs text-gray-500 mb-1">{isAr ? "مدة الإقامة" : "Stay Duration"}</label>
@@ -593,39 +636,27 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
             </div>
 
             {/* ── Error ── */}
-            {(status === "error" || errorMsg) && (
+            {errorMsg && (
               <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 font-medium">
-                ❌ {errorMsg || (isAr ? "حدث خطأ. حاول مرة أخرى" : "An error occurred. Please try again.")}
+                ❌ {errorMsg}
               </div>
             )}
 
-            {/* ── CTAs ── */}
+            {/* ── WhatsApp Confirm Button ── */}
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              {/* إرسال طلب الحجز */}
               <button
                 onClick={handleWhatsAppBooking}
-                disabled={status === "pending"}
-                className="flex-1 btn-primary py-3.5 text-base font-bold flex items-center justify-center gap-2"
+                disabled={isSubmitting || redirecting}
+                className="flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl w-full font-bold text-base transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {status === "pending" ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4"/>
-                      <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                    </svg>
-                    {isAr ? "???? ????? ?????... ???? ?????? ??? ?????? ???? ?????" : "Submitting... redirecting to WhatsApp in a few seconds"}
-                  </span>
-                ) : (
-                  <>{isAr ? "📨 إرسال طلب حجز" : "📨 Send Booking Request"}</>
-                )}
+                <span>💬</span>
+                {isAr ? "تأكيد الحجز عبر واتساب" : "Confirm Booking via WhatsApp"}
               </button>
-
-              
             </div>
 
           </div>
-        )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
