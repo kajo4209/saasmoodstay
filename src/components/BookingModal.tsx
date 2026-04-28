@@ -105,13 +105,26 @@ function MiniCalendar({
     const weekend  = isWeekend(d);
     const season   = isSeason(d);
 
-    if (past || conflict) return "bg-gray-100 text-gray-300 cursor-not-allowed text-xs line-through";
-    if (isStart || isEnd)        return "bg-sky-500 text-white rounded-full font-bold cursor-pointer text-xs";
-    if (inRange)                 return "bg-sky-100 text-sky-700 cursor-pointer text-xs";
-    if (weekend && season)       return "bg-orange-100 text-orange-700 cursor-pointer hover:bg-orange-200 text-xs";
-    if (weekend)                 return "bg-yellow-50 text-yellow-700 cursor-pointer hover:bg-yellow-100 text-xs";
-    if (season)                  return "bg-green-50 text-green-700 cursor-pointer hover:bg-green-100 text-xs";
-    return "hover:bg-sky-50 text-gray-700 cursor-pointer text-xs";
+    // الأيام السابقة والمحجوزة: رمادي أغمق قليلاً لتكون مقروءة بوضوح
+    if (past || conflict) return "bg-gray-200 text-gray-400 cursor-not-allowed text-xs line-through";
+    
+    // بداية ونهاية الحجز: أزرق أغمق (600) مع ظل خفيف لتبدو بارزة
+    if (isStart || isEnd) return "bg-sky-600 text-white rounded-full font-bold cursor-pointer text-xs shadow-sm";
+    
+    // الأيام التي تقع داخل نطاق الحجز: خلفية 200 ونص 800
+    if (inRange) return "bg-sky-200 text-sky-800 cursor-pointer text-xs";
+    
+    // الويك إند + الموسم (ذروة): برتقالي أغمق
+    if (weekend && season) return "bg-orange-200 text-orange-900 cursor-pointer hover:bg-orange-300 text-xs font-medium";
+    
+    // الويك إند العادي: استخدام Amber بدلاً من Yellow لأنه أوضح وأشيك في الدرجات الغامقة
+    if (weekend) return "bg-amber-100 text-amber-800 cursor-pointer hover:bg-amber-200 text-xs font-medium";
+    
+    // الموسم العادي: أخضر أغمق
+    if (season) return "bg-green-100 text-green-800 cursor-pointer hover:bg-green-200 text-xs font-medium";
+    
+    // الأيام العادية: نص غامق (800) مع تأثير مرور الماوس بلون رمادي أو أزرق فاتح جداً
+    return "hover:bg-sky-100 text-gray-800 cursor-pointer text-xs";
   }
 
   function handleDay(d: Date) {
