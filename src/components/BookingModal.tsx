@@ -370,46 +370,37 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
     const ok = await submitBooking();
     if (!ok) return;
 
-    // Format phone number for WhatsApp
-    const formattedPhone = formatPhoneForWhatsApp(phone);
-    if (!formattedPhone) {
-      setErrorMsg(isAr ? "رقم واتساب غير صحيح" : "Invalid WhatsApp number");
-      return;
-    }
 
     // Show loading screen
     setRedirecting(true);
+// رقم الأونر (مهم يكون بصيغة دولية بدون +)
+const OWNER_WHATSAPP = "201201543050";
 
-    // Prepare WhatsApp message (stronger, better conversion)
-    const messageLines = [
-      `أهلاً 👋`,
-      `أرغب في تأكيد حجز الشاليه التالي:`,
-      ``,
-      `🏖️ الشاليه: ${chalet.name}`,
-      `👤 الاسم: ${name.trim()}`,
-      `📞 الهاتف: ${phone.trim()}`,
-      `📅 الدخول: ${fmt(checkIn!)}`,
-      `📅 الخروج: ${fmt(checkOut!)}`,
-      `🌙 عدد الليالي: ${pricing.nights}`,
-      `💰 الإجمالي: ${grandTotal.toLocaleString()} ج.م`,
-      `💳 العربون المطلوب: ${depositAmount.toLocaleString()} ج.م (15%)`,
-      notes.trim() ? `📝 ملاحظات: ${notes.trim()}` : "",
-      ``,
-      `يرجى تأكيد الحجز وإرسال تفاصيل الدفع على InstaPay/Vodafone Cash.`,
-      `شكراً 🙏`,
-    ].filter(Boolean);
-    
-    const message = encodeURIComponent(messageLines.join("\n"));
-    
-    // Redirect to WhatsApp after 3 seconds
-    setTimeout(() => {
-      window.location.href = `https://wa.me/${formattedPhone}?text=${message}`;
-    }, 3000);
-  }
+// Prepare WhatsApp message (stronger, better conversion)
+const messageLines = [
+  `أهلاً 👋`,
+  `أرغب في تأكيد حجز الشاليه التالي:`,
+  ``,
+  `🏖️ الشاليه: ${chalet.name}`,
+  `👤 الاسم: ${name.trim()}`,
+  `📞 الهاتف: ${phone.trim()}`,
+  `📅 الدخول: ${fmt(checkIn!)}`,
+  `📅 الخروج: ${fmt(checkOut!)}`,
+  `🌙 عدد الليالي: ${pricing.nights}`,
+  `💰 الإجمالي: ${grandTotal.toLocaleString()} ج.م`,
+  `💳 العربون المطلوب: ${depositAmount.toLocaleString()} ج.م (15%)`,
+  notes.trim() ? `📝 ملاحظات: ${notes.trim()}` : "",
+  ``,
+  `يرجى تأكيد الحجز وإرسال تفاصيل الدفع على InstaPay/Vodafone Cash.`,
+  `شكراً 🙏`,
+].filter(Boolean);
 
-  function handleBackdrop(e: React.MouseEvent<HTMLDivElement>) {
-    if ((e.target as HTMLElement).id === "booking-backdrop") onClose();
-  }
+const message = encodeURIComponent(messageLines.join("\n"));
+
+// Redirect to WhatsApp after 3 seconds
+setTimeout(() => {
+  window.location.href = `https://wa.me/${OWNER_WHATSAPP}?text=${message}`;
+}, 3000);
 
   // ── Render ──
   return (
