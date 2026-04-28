@@ -221,26 +221,6 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
     return /^01[0-9]{9}$/.test(phoneNumber);
   }
 
-  // Format phone number for WhatsApp (handle 01xxx or 201xxx)
-  function formatPhoneForWhatsApp(phoneNumber: string): string | null {
-    let cleanPhone = phoneNumber.trim().replace(/\D/g, '');
-    
-    if (cleanPhone.startsWith('01') && cleanPhone.length === 11) {
-      return '2' + cleanPhone;
-    }
-    
-    if (cleanPhone.startsWith('20') && cleanPhone.length === 12) {
-      return cleanPhone;
-    }
-    
-    // Handle case where user wrote 2010... (20 + 10 digits)
-    if (cleanPhone.startsWith('201') && cleanPhone.length === 12) {
-      return cleanPhone;
-    }
-    
-    return null;
-  }
-
   useEffect(() => {
     let cancelled = false;
     async function loadBookedRanges() {
@@ -364,43 +344,49 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
     }
   }
 
-  // Handle WhatsApp booking flow
+  // Handle WhatsApp booking flow - sends message to OWNER
   async function handleWhatsAppBooking() {
     // Submit booking to dashboard first (includes all validation)
     const ok = await submitBooking();
     if (!ok) return;
 
-
     // Show loading screen
     setRedirecting(true);
-// رقم الأونر (مهم يكون بصيغة دولية بدون +)
-const OWNER_WHATSAPP = "201201543050";
 
-// Prepare WhatsApp message (stronger, better conversion)
-const messageLines = [
-  `أهلاً 👋`,
-  `أرغب في تأكيد حجز الشاليه التالي:`,
-  ``,
-  `🏖️ الشاليه: ${chalet.name}`,
-  `👤 الاسم: ${name.trim()}`,
-  `📞 الهاتف: ${phone.trim()}`,
-  `📅 الدخول: ${fmt(checkIn!)}`,
-  `📅 الخروج: ${fmt(checkOut!)}`,
-  `🌙 عدد الليالي: ${pricing.nights}`,
-  `💰 الإجمالي: ${grandTotal.toLocaleString()} ج.م`,
-  `💳 العربون المطلوب: ${depositAmount.toLocaleString()} ج.م (15%)`,
-  notes.trim() ? `📝 ملاحظات: ${notes.trim()}` : "",
-  ``,
-  `يرجى تأكيد الحجز وإرسال تفاصيل الدفع على InstaPay/Vodafone Cash.`,
-  `شكراً 🙏`,
-].filter(Boolean);
+    // Prepare WhatsApp message with customer data for the OWNER
+    const messageLines = [
+      `📢 طلب حجز جديد من الموقع`,
+      ``,
+      `🏖️ الشاليه: ${chalet.name}`,
+      `👤 اسم العميل: ${name.trim()}`,
+      `📞 رقم العميل: ${phone.trim()}`,
+      `📅 تاريخ الدخول: ${fmt(checkIn!)}`,
+      `📅 تاريخ الخروج: ${fmt(checkOut!)}`,
+      `🌙 عدد الليالي: ${pricing.nights}`,
+      `💰 الإجمالي: ${grandTotal.toLocaleString()} ج.م`,
+      `💳 العربون المطلوب: ${depositAmount.toLocaleString()} ج.م (15%)`,
+      notes.trim() ? `📝 ملاحظات العميل: ${notes.trim()}` : "",
+      selectedFeatures.length > 0 ? `✨ المميزات المطلوبة: ${selectedFeatures.join(", ")}` : "",
+      couponDiscount > 0 ? `🏷️ كوبون خصم: ${couponDiscount}%` : "",
+      ``,
+      `يرجى التواصل مع العميل لتأكيد الحجز وإرسال تفاصيل الدفع.`,
+    ].filter(Boolean);
+    
+    const message = encodeURIComponent(messageLines.join("\n"));
+    
+    // Owner's phone number (fixed - the chalet owner)
+    // Format: 01201543050 -> 201201543050 for WhatsApp international format
+    const OWNER_PHONE = "201201543050";
+    
+    // Redirect to WhatsApp after 3 seconds
+    setTimeout(() => {
+      window.location.href = `https://wa.me/${OWNER_PHONE}?text=${message}`;
+    }, 3000);
+  }
 
-const message = encodeURIComponent(messageLines.join("\n"));
-
-// Redirect to WhatsApp after 3 seconds
-setTimeout(() => {
-  window.location.href = `https://wa.me/${OWNER_WHATSAPP}?text=${message}`;
-}, 3000);
+  function handleBackdrop(e: React.MouseEvent<HTMLDivElement>) {
+    if ((e.target as HTMLElement).id === "booking-backdrop") onClose();
+  }
 
   // ── Render ──
   return (
@@ -588,7 +574,7 @@ setTimeout(() => {
                   <input
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    placeholder={isAr ? "محمود سالم" : "John Doe"}
+                    placeholder={isAr ? "محمد أحمد" : "John Doe"}
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-400 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                   />
                 </div>
