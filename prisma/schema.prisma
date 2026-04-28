@@ -38,3 +38,15 @@ model Booking {
   payment    String   @default("cash")
   createdAt  DateTime @default(now())
 }
+model Coupon {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  value       Int      // القيمة (نسبة أو مبلغ)
+  type        String   @default("percent") // percent | fixed
+  maxUses     Int      @default(1)
+  usedCount   Int      @default(0)
+  active      Boolean  @default(true)
+  expiresAt   DateTime?
+  description String   @default("")
+  createdAt   DateTime @default(now())
+}
