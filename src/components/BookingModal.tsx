@@ -353,24 +353,31 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
     // Show loading screen
     setRedirecting(true);
 
-    // Prepare WhatsApp message with customer data for the OWNER
-    const messageLines = [
-      `📢 طلب حجز جديد من الموقع`,
-      ``,
-      `🏖️ الشاليه: ${chalet.name}`,
-      `👤 اسم العميل: ${name.trim()}`,
-      `📞 رقم العميل: ${phone.trim()}`,
-      `📅 تاريخ الدخول: ${fmt(checkIn!)}`,
-      `📅 تاريخ الخروج: ${fmt(checkOut!)}`,
-      `🌙 عدد الليالي: ${pricing.nights}`,
-      `💰 الإجمالي: ${grandTotal.toLocaleString()} ج.م`,
-      `💳 العربون المطلوب: ${depositAmount.toLocaleString()} ج.م (15%)`,
-      notes.trim() ? `📝 ملاحظات العميل: ${notes.trim()}` : "",
-      selectedFeatures.length > 0 ? `✨ المميزات المطلوبة: ${selectedFeatures.join(", ")}` : "",
-      couponDiscount > 0 ? `🏷️ كوبون خصم: ${couponDiscount}%` : "",
-      ``,
-      `يرجى التواصل مع العميل لتأكيد الحجز وإرسال تفاصيل الدفع.`,
-    ].filter(Boolean);
+const messageLines = [
+  `أهلاً 👋`,
+  `أنا ${name.trim()} وعايز أحجز الشاليه ده:`,
+
+  ``,
+  `🏖️ ${chalet.name}`,
+  `📅 من ${fmt(checkIn!)} إلى ${fmt(checkOut!)}`,
+  `🌙 عدد الليالي: ${pricing.nights}`,
+
+  ``,
+  `💰 الإجمالي: ${grandTotal.toLocaleString()} ج.م`,
+  `💳 جاهز أدفع العربون: ${depositAmount.toLocaleString()} ج.م`,
+
+  selectedFeatures.length > 0
+    ? `✨ طلبات: ${selectedFeatures.join(" - ")}`
+    : "",
+
+  notes.trim()
+    ? `📝 ملاحظات: ${notes.trim()}`
+    : "",
+
+  ``,
+  `📞 رقمي: ${phone.trim()}`,
+  `ياريت تبعتلي طريقة الدفع (InstaPay / Vodafone Cash) عشان أأكد الحجز فوراً 🙏`,
+].filter(Boolean);
     
     const message = encodeURIComponent(messageLines.join("\n"));
     
@@ -401,7 +408,7 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
             </p>
             <div className="animate-spin w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full mx-auto"></div>
             <p className="text-xs text-gray-400 mt-4">
-              {isAr ? "سيتم التحويل خلال 3 ثوانٍ" : "Redirecting in 3 seconds"}
+              {isAr ? "سيتم التحويل خلال 5 ثوانٍ" : "Redirecting in 5 seconds"}
             </p>
           </div>
         </div>
@@ -574,7 +581,7 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
                   <input
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    placeholder={isAr ? "محمد أحمد" : "John Doe"}
+                    placeholder={isAr ? "الاسم ثنائي" : "John Doe"}
                     className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-400 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                   />
                 </div>
