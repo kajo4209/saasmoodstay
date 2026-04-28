@@ -181,17 +181,14 @@ return (
           <span>مدة الإقامة</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 bg-amber-100 rounded inline-block"/>
+          <span className="w-3 h-3 bg-amber-200 rounded inline-block"/>
           <span>ويك إند (+20%)</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 bg-green-100 rounded inline-block"/>
+          <span className="w-3 h-3 bg-green-200 rounded inline-block"/>
           <span>موسم (+10%)</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 bg-orange-200 rounded inline-block"/>
-          <span>ذروة (+30%)</span>
-        </div>
+        
         <div className="flex items-center gap-1.5">
           <span className="w-3 h-3 bg-gray-200 rounded inline-block"/>
           <span>غير متاح</span>
