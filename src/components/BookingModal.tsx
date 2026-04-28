@@ -199,6 +199,7 @@ return (
       </div>
     </div>
   );
+  }
 
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 export function BookingModal({ chalet, onClose }: BookingModalProps) {
