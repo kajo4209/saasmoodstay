@@ -35,11 +35,6 @@ const InfoIcon = () => (
     <path d="M12 16v-4M12 8h.01" />
   </svg>
 );
-const WhatsAppIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-  </svg>
-);
 const CloseIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
     <path d="M18 6L6 18M6 6l12 12" />
@@ -98,13 +93,6 @@ function ChaletDetailsModal({
       ? isAr ? "شباب" : "Youth"
       : isAr ? "عائلات" : "Family";
 
-  function handleWa() {
-    const msg = encodeURIComponent(
-      `أهلاً، أريد حجز شاليه ${chalet.name}`
-    );
-    window.open(`https://wa.me/201201543050?text=${msg}`, "_blank");
-  }
-
   function nextImage() {
     setImgIdx((prev) => (prev + 1) % images.length);
   }
@@ -124,7 +112,6 @@ function ChaletDetailsModal({
         style={{ maxWidth: 680, maxHeight: "90vh", direction: isAr ? "rtl" : "ltr" }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 rounded-t-3xl">
           <div>
             <h2 className="font-black text-xl text-gray-800 dark:text-white">{chalet.name}</h2>
@@ -141,7 +128,6 @@ function ChaletDetailsModal({
         </div>
 
         <div className="p-6 space-y-5">
-          {/* Images carousel with arrows */}
           <div className="relative rounded-2xl overflow-hidden" style={{ height: 260 }}>
             <Image
               src={images[imgIdx]}
@@ -151,27 +137,25 @@ function ChaletDetailsModal({
               sizes="680px"
             />
             
-            {/* Navigation Arrows */}
             {images.length > 1 && (
               <>
                 <button
                   onClick={prevImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all z-10"
                 >
                   <ChevronLeft />
                 </button>
                 <button
                   onClick={nextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all z-10"
                 >
                   <ChevronRight />
                 </button>
               </>
             )}
             
-            {/* Dots */}
             {images.length > 1 && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
                 {images.map((_, i) => (
                   <button
                     key={i}
@@ -184,18 +168,16 @@ function ChaletDetailsModal({
               </div>
             )}
             
-            {/* Badge */}
             <span className={`absolute top-3 right-3 ${chalet.type === "youth" ? "badge-sea" : "badge-gold"}`}>
               {badgeLabel}
             </span>
-            {/* Price */}
+            
             <div className="absolute bottom-3 right-3 bg-white/95 rounded-full px-4 py-1.5 shadow-lg">
               <span className="text-sky-700 font-black">{chalet.price.toLocaleString()}</span>
               <span className="text-gray-500 text-sm"> {isAr ? "ج/ليلة" : "EGP/night"}</span>
             </div>
           </div>
 
-          {/* بقية المحتوى كما هو */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-sky-50 dark:bg-sky-900/20 rounded-2xl p-4 text-center">
               <div className="text-2xl font-black text-sky-700">{chalet.rooms}</div>
@@ -255,13 +237,6 @@ function ChaletDetailsModal({
               <CalendarIcon />
               {isAr ? "احجز الآن" : "Book Now"}
             </button>
-            <button
-              onClick={handleWa}
-              className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full font-bold border-2 border-green-400 text-green-600 hover:bg-green-50 transition-all"
-            >
-              <WhatsAppIcon />
-              {isAr ? "تواصل واتساب" : "WhatsApp"}
-            </button>
           </div>
         </div>
       </div>
@@ -296,7 +271,6 @@ function ChaletCard({
 
   const [imgIndex, setImgIndex] = useState(0);
 
-  // Auto-slide images every 3 seconds
   useEffect(() => {
     if (images.length <= 1) return;
 
@@ -338,7 +312,6 @@ function ChaletCard({
 
   return (
     <div ref={ref} className="chalet-card reveal">
-      {/* Image with auto-slide and arrows */}
       <div className="relative overflow-hidden" style={{ height: 220 }}>
         <Image
           src={images[imgIndex]}
@@ -348,27 +321,23 @@ function ChaletCard({
           sizes="(max-width:768px) 100vw, 33vw"
         />
         
-        {/* Navigation Arrows on image */}
         {images.length > 1 && (
           <>
             <button
               onClick={prevImage}
-              className="absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all opacity-0 group-hover:opacity-100"
-              style={{ opacity: 0.6 }}
+              className="absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all z-10"
             >
               <ChevronLeft />
             </button>
             <button
               onClick={nextImage}
-              className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all"
-              style={{ opacity: 0.6 }}
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all z-10"
             >
               <ChevronRight />
             </button>
           </>
         )}
         
-        {/* Image dots indicator */}
         {images.length > 1 && (
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
             {images.map((_, i) => (
@@ -404,7 +373,6 @@ function ChaletCard({
         </div>
       </div>
 
-      {/* Content */}
       <div className="p-5">
         <div className="flex items-start justify-between mb-2">
           <h3 className="font-black text-gray-800 dark:text-white text-lg">{chalet.name}</h3>
@@ -444,7 +412,6 @@ function ChaletCard({
           </div>
         )}
 
-        {/* ── 2 Buttons ── */}
         <div className="flex flex-col gap-2 mt-1">
           <button
             onClick={() => onDetails(chalet)}
@@ -488,12 +455,11 @@ function SkeletonCard() {
 export function ChaletsSection() {
   const { lang } = useLang();
   const titleRef = useScrollReveal();
-  const btnRef   = useScrollReveal();
 
   const [chalets, setChalets]       = useState<ChaletDB[]>([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(false);
-  const [showAll, setShowAll]       = useState(false); // للتحكم بعرض الكل
+  const [showAll, setShowAll]       = useState(false);
   const [bookingChalet, setBookingChalet]   = useState<ChaletDB | null>(null);
   const [detailsChalet, setDetailsChalet]   = useState<ChaletDB | null>(null);
 
@@ -504,10 +470,7 @@ export function ChaletsSection() {
       .catch(() => { setError(true); setLoading(false); });
   }, []);
 
-  // ترتيب حسب الأكثر حجزاً
   const sortedChalets = [...chalets].sort((a, b) => (b.bookingsCount || 0) - (a.bookingsCount || 0));
-  
-  // عرض أول 3 أو الكل حسب showAll
   const displayedChalets = showAll ? sortedChalets : sortedChalets.slice(0, 3);
 
   return (
@@ -551,12 +514,11 @@ export function ChaletsSection() {
                 }
               </div>
 
-              {/* زر عرض المزيد / عرض أقل */}
               {!loading && chalets.length > 3 && (
-                <div ref={btnRef} className="reveal text-center mt-12">
+                <div className="text-center mt-12">
                   <button
                     onClick={() => setShowAll(!showAll)}
-                    className="btn-primary px-10 py-4 text-base"
+                    className="btn-primary px-10 py-4 text-base inline-block"
                   >
                     {showAll 
                       ? (lang === "ar" ? "عرض أقل" : "Show Less")
@@ -569,7 +531,6 @@ export function ChaletsSection() {
         </div>
       </section>
 
-      {/* Details Modal */}
       {detailsChalet && (
         <ChaletDetailsModal
           chalet={detailsChalet}
@@ -581,7 +542,6 @@ export function ChaletsSection() {
         />
       )}
 
-      {/* Booking Modal */}
       {bookingChalet && (
         <BookingModal
           chalet={bookingChalet}
