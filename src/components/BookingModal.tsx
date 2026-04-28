@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLang } from "@/context/LanguageContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -68,13 +68,6 @@ function calcPricing(basePrice: number, checkIn: Date | null, checkOut: Date | n
 
 function fmt(d: Date): string { return d.toISOString().slice(0, 10); }
 
-// ─── Booked ranges (fetched from API in real use — placeholder) ───────────────
-const BOOKED: [string, string][] = [];
-function isBooked(d: Date): boolean {
-  const s = fmt(d);
-  return BOOKED.some(([a, b]) => s >= a && s <= b);
-}
-
 // ─── Mini Calendar ────────────────────────────────────────────────────────────
 function MiniCalendar({
   checkIn, checkOut, onSelect, bookedRanges,
@@ -108,7 +101,7 @@ function MiniCalendar({
   function cellClass(d: Date): string {
     const past     = d < today;
     const fri      = isFriday(d);
-    const conflict = isConflict(d) || isBooked(d);
+    const conflict = isConflict(d);
     const inRange  = checkIn && checkOut && d > checkIn && d < checkOut;
     const isStart  = checkIn  && d.getTime() === checkIn.getTime();
     const isEnd    = checkOut && d.getTime() === checkOut.getTime();
@@ -125,7 +118,7 @@ function MiniCalendar({
   }
 
   function handleDay(d: Date) {
-    if (d < today || isFriday(d) || isBooked(d)) return;
+    if (d < today || isFriday(d) || isConflict(d)) return;
     onSelect(d);
   }
 
@@ -196,6 +189,7 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
   // Status
   const [status, setStatus] = useState<"idle" | "pending" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [bookedRanges, setBookedRanges] = useState<[string, string][]>([]);
 
   // Features from chalet
   const featureList = chalet.features
@@ -222,6 +216,36 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
   const grandTotal        = Math.round(pricing.finalTotal - couponDiscountAmt);
   const depositAmount     = Math.round(grandTotal * 0.15);
 
+  useEffect(() => {
+    let cancelled = false;
+    async function loadBookedRanges() {
+      try {
+        const res = await fetch(`/api/bookings?chaletId=${chalet.id}&status=confirmed`, { cache: "no-store" });
+        if (!res.ok) return;
+        const rows = await res.json();
+        if (cancelled || !Array.isArray(rows)) return;
+        const ranges: [string, string][] = [];
+        for (const b of rows as Array<{ checkIn?: string; checkOut?: string }>) {
+          const start = b.checkIn?.slice(0, 10);
+          const end = b.checkOut?.slice(0, 10);
+          if (start && end) ranges.push([start, end]);
+        }
+        setBookedRanges(ranges);
+      } catch {
+        if (!cancelled) setBookedRanges([]);
+      }
+    }
+
+    loadBookedRanges();
+    return () => { cancelled = true; };
+  }, [chalet.id]);
+
+  function hasRangeConflict(start: Date, end: Date): boolean {
+    const from = fmt(start);
+    const to = fmt(end);
+    return bookedRanges.some(([a, b]) => from < b && to > a);
+  }
+
   // Calendar logic
   function handleDateSelect(d: Date) {
     if (calStep === "in") {
@@ -230,6 +254,11 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
       if (checkIn && d <= checkIn) {
         setCheckIn(d); setCheckOut(null); setCalStep("out");
       } else {
+        if (checkIn && hasRangeConflict(checkIn, d)) {
+          setErrorMsg(isAr ? "الفترة المختارة تتعارض مع حجز مؤكد. اختر تواريخ أخرى." : "Selected dates overlap a confirmed booking. Please pick other dates.");
+          return;
+        }
+        setErrorMsg("");
         setCheckOut(d); setCalStep("in");
       }
     }
@@ -240,20 +269,34 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
   }
 
   // WhatsApp
-  function handleWhatsApp() {
-    const msg = encodeURIComponent(
-      `أهلاً، أريد حجز شاليه ${chalet.name}` +
-      (checkIn  ? ` من تاريخ ${fmt(checkIn)}`  : " من تاريخ [..]") +
-      (checkOut ? ` إلى ${fmt(checkOut)}.`      : " إلى [..].")
-    );
+  function openWhatsAppForBooking() {
+    const messageLines = [
+      `مرحبا، أرسلت طلب الحجز على الموقع.`,
+      `الشاليه: ${chalet.name}`,
+      `الاسم: ${name.trim()}`,
+      `الهاتف: ${phone.trim()}`,
+      `الدخول: ${checkIn ? fmt(checkIn) : "-"}`,
+      `الخروج: ${checkOut ? fmt(checkOut) : "-"}`,
+      `عدد الليالي: ${pricing.nights}`,
+      `الإجمالي: ${grandTotal.toLocaleString()} ج.م`,
+      `العربون المطلوب: ${depositAmount.toLocaleString()} ج.م`,
+      notes.trim() ? `ملاحظات: ${notes.trim()}` : "",
+      "",
+      "من فضلك ابعتلي رقم المحفظة الإلكترونية أو حساب InstaPay للتحويل.",
+    ].filter(Boolean);
+    const msg = encodeURIComponent(messageLines.join("\n"));
     window.open(`https://wa.me/201201543050?text=${msg}`, "_blank");
   }
 
   // Submit
-  async function submitBooking() {
+  async function submitBooking(showSuccess = true): Promise<boolean> {
     if (!name.trim() || !phone.trim() || !checkIn || !checkOut) {
       setErrorMsg(isAr ? "يرجى تعبئة الاسم والهاتف وتحديد التواريخ" : "Please fill name, phone and select dates");
-      return;
+      return false;
+    }
+    if (hasRangeConflict(checkIn, checkOut)) {
+      setErrorMsg(isAr ? "الفترة المختارة غير متاحة (محجوزة بالفعل)." : "Selected date range is unavailable (already booked).");
+      return false;
     }
     setErrorMsg("");
     setStatus("pending");
@@ -277,21 +320,30 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
         const data = await res.json();
         setStatus("error");
         setErrorMsg(data.error || (isAr ? "الشاليه محجوز في هذه الفترة" : "Chalet is booked for these dates"));
-        return;
+        return false;
       }
 
       if (!res.ok) {
         const data = await res.json();
         setStatus("error");
         setErrorMsg(data.error || (isAr ? "حدث خطأ" : "An error occurred"));
-        return;
+        return false;
       }
 
-      setStatus("success");
+      setStatus(showSuccess ? "success" : "idle");
+      return true;
     } catch {
       setStatus("error");
       setErrorMsg(isAr ? "فشل الاتصال بالخادم" : "Connection failed");
+      return false;
     }
+  }
+
+  async function handleWhatsAppBooking() {
+    const ok = await submitBooking(false);
+    if (!ok) return;
+    openWhatsAppForBooking();
+    setStatus("success");
   }
 
   function handleBackdrop(e: React.MouseEvent<HTMLDivElement>) {
@@ -356,7 +408,7 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
               </div>
             )}
             <div className="flex gap-3">
-              <button onClick={handleWhatsApp}
+              <button onClick={openWhatsAppForBooking}
                 className="flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm border-2 border-green-400 text-green-600 hover:bg-green-50 transition-all">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
@@ -398,7 +450,12 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
                   </div>
                 </button>
               </div>
-              <MiniCalendar checkIn={checkIn} checkOut={checkOut} onSelect={handleDateSelect} />
+              <MiniCalendar
+                checkIn={checkIn}
+                checkOut={checkOut}
+                onSelect={handleDateSelect}
+                bookedRanges={bookedRanges}
+              />
               <p className="text-xs text-red-400 mt-2">⚠️ {isAr ? "الجمعة غير متاحة للدخول أو الخروج" : "Friday is not available for check-in or check-out"}</p>
             </div>
 
@@ -552,7 +609,7 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               {/* إرسال طلب الحجز */}
               <button
-                onClick={submitBooking}
+                onClick={() => submitBooking(true)}
                 disabled={status === "pending"}
                 className="flex-1 btn-primary py-3.5 text-base font-bold flex items-center justify-center gap-2"
               >
@@ -571,7 +628,7 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
 
               {/* واتساب */}
               <button
-                onClick={handleWhatsApp}
+                onClick={handleWhatsAppBooking}
                 className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-full font-bold text-base border-2 border-green-400 text-green-600 hover:bg-green-50 transition-all"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">

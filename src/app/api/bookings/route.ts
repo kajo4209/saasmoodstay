@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 // GET /api/bookings
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const { searchParams } = new URL(req.url);
+    const chaletId = searchParams.get("chaletId");
+    const status = searchParams.get("status");
+
     const bookings = await prisma.booking.findMany({
+      where: {
+        ...(chaletId ? { chaletId: Number(chaletId) } : {}),
+        ...(status ? { status } : {}),
+      },
       include: { chalet: { select: { name: true, price: true } } },
       orderBy: { createdAt: "desc" },
     });
