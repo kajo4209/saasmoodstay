@@ -200,17 +200,39 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
   const pricing = calcPricing(chalet.price, checkIn, checkOut);
 
   // Coupon
-  const COUPONS: Record<string, number> = { "MOOD10": 10, "BEACH5": 5, "VIP15": 15 };
-  function applyCoupon() {
-    const c = coupon.trim().toUpperCase();
-    if (COUPONS[c]) {
-      setCouponDiscount(COUPONS[c]);
-      setCouponMsg(`✅ تم تطبيق الكوبون! خصم ${COUPONS[c]}%`);
+
+  async function applyCoupon() {
+  const c = coupon.trim();
+
+  if (!c) {
+    setCouponMsg("❌ اكتب الكوبون الأول");
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/coupons/validate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ code: c }),
+    });
+
+    const data = await res.json();
+
+    if (data.valid) {
+      setCouponDiscount(data.discount);
+      setCouponMsg(`✅ تم تطبيق الكوبون! خصم ${data.discount}%`);
     } else {
       setCouponDiscount(0);
-      setCouponMsg("❌ كود غير صحيح");
+      setCouponMsg(`❌ ${data.error || "كوبون غير صحيح"}`);
     }
+
+  } catch (err) {
+    setCouponDiscount(0);
+    setCouponMsg("❌ حصل خطأ في السيرفر");
   }
+}
 
   const couponDiscountAmt = pricing.finalTotal * (couponDiscount / 100);
   const grandTotal        = Math.round(pricing.finalTotal - couponDiscountAmt);
