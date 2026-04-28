@@ -354,17 +354,16 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
     setRedirecting(true);
 
 const messageLines = [
-  `أهلاً 👋`,
-  `أنا ${name.trim()} وعايز أحجز الشاليه ده:`,
+  `مرحبا ارسلت اليك طلب حجز من خلال الموقع `,
+  `أنا ${name.trim()}  :`,
+
+
+  ` من ${fmt(checkIn!)} إلى ${fmt(checkOut!)}`,
+  ` عدد الليالي: ${pricing.nights}`,
 
   ``,
-  `🏖️ ${chalet.name}`,
-  `📅 من ${fmt(checkIn!)} إلى ${fmt(checkOut!)}`,
-  `🌙 عدد الليالي: ${pricing.nights}`,
-
-  ``,
-  `💰 الإجمالي: ${grandTotal.toLocaleString()} ج.م`,
-  `💳 جاهز أدفع العربون: ${depositAmount.toLocaleString()} ج.م`,
+  ` الإجمالي: ${grandTotal.toLocaleString()} ج.م`,
+  `و جاهز أدفع العربون: ${depositAmount.toLocaleString()} ج.م`,
 
   selectedFeatures.length > 0
     ? `✨ طلبات: ${selectedFeatures.join(" - ")}`
@@ -375,8 +374,8 @@ const messageLines = [
     : "",
 
   ``,
-  `📞 رقمي: ${phone.trim()}`,
-  `ياريت تبعتلي طريقة الدفع (InstaPay / Vodafone Cash) عشان أأكد الحجز فوراً 🙏`,
+
+  `من فضلك ابعتلي حساب الدفع (InstaPay / محفة الكترونية )  للتحويل وتاكيد الحجز وشكرا جزيلا `,
 ].filter(Boolean);
     
     const message = encodeURIComponent(messageLines.join("\n"));
@@ -577,7 +576,7 @@ const messageLines = [
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">{isAr ? "الاسم الكامل *" : "Full Name *"}</label>
+                  <label className="block text-xs text-gray-500 mb-1">{isAr ? "الاسم *" : " Name *"}</label>
                   <input
                     value={name}
                     onChange={e => setName(e.target.value)}
