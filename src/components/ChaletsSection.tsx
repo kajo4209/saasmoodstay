@@ -263,14 +263,6 @@ function ChaletCard({
     } catch { setLiked(!liked); }
   }
 
-  function handleWhatsApp(e: React.MouseEvent) {
-    e.stopPropagation();
-    const msg = encodeURIComponent(
-      `أهلاً، أريد حجز شاليه ${chalet.name} من تاريخ [..] إلى [..]`
-    );
-    window.open(`https://wa.me/201201543050?text=${msg}`, "_blank");
-  }
-
   const imgSrc =
     chalet.images?.[0] ??
     "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?q=80&w=800";
@@ -353,7 +345,7 @@ function ChaletCard({
           </div>
         )}
 
-        {/* ── 3 Buttons ── */}
+        {/* ── 2 Buttons ── */}
         <div className="flex flex-col gap-2 mt-1">
           {/* 1. عرض التفاصيل */}
           <button
@@ -364,16 +356,7 @@ function ChaletCard({
             {isAr ? "عرض التفاصيل" : "View Details"}
           </button>
 
-          {/* 2. حجز عبر الواتساب */}
-          <button
-            onClick={handleWhatsApp}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full font-bold text-sm border-2 border-green-400 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all"
-          >
-            <WhatsAppIcon />
-            {isAr ? "حجز عبر الواتساب" : "Book via WhatsApp"}
-          </button>
-
-          {/* 3. احجز الآن */}
+          {/* 2. احجز الآن */}
           <button
             onClick={() => onBook(chalet)}
             className="w-full btn-primary py-2.5 text-sm font-bold flex items-center justify-center gap-2"
