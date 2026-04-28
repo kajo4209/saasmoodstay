@@ -71,7 +71,7 @@ export function Navbar() {
           
           {/* Dashboard Button 🔥 */}
           <Link
-            href="/dashboard"
+            href="/login"
             className="hidden sm:block px-4 py-2 rounded-lg bg-sky-600 text-white text-sm font-semibold hover:bg-sky-700 transition"
           >
             {tr(t.nav.dashboard || "Dashboard", lang)}
@@ -153,7 +153,7 @@ export function Navbar() {
 
           {/* Dashboard في الموبايل */}
           <Link
-            href="/dashboard"
+            href="/login"
             className="btn-primary text-center py-3"
             onClick={() => setMenuOpen(false)}
           >
