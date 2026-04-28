@@ -26,9 +26,22 @@ export async function GET() {
   try {
     const chalets = await prisma.chalet.findMany({
       orderBy: { createdAt: "desc" },
+      include: {
+        bookings: {
+          where: { status: "confirmed" }, // بس الحجوزات المؤكدة
+          select: { id: true },
+        },
+      },
     });
 
-    return NextResponse.json(chalets);
+    // تحويل البيانات وإضافة bookingsCount
+    const chaletsWithCount = chalets.map((chalet) => ({
+      ...chalet,
+      bookingsCount: chalet.bookings.length, // عدد الحجوزات المؤكدة
+      bookings: undefined, // نشيل الـ array عشان الـ response يبقى نظيف
+    }));
+
+    return NextResponse.json(chaletsWithCount);
   } catch (error) {
     console.error("GET /api/chalets error:", error);
     return NextResponse.json(
@@ -90,7 +103,13 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json(chalet, { status: 201 });
+    // إضافة bookingsCount = 0 للشاليه الجديد
+    const chaletWithCount = {
+      ...chalet,
+      bookingsCount: 0,
+    };
+
+    return NextResponse.json(chaletWithCount, { status: 201 });
   } catch (error) {
     console.error("POST /api/chalets error:", error);
     const details =

@@ -57,6 +57,7 @@ export interface ChaletDB {
   type: string;
   images: string[];
   createdAt: string;
+  bookingsCount?: number; // for sorting by popularity
 }
 
 // ─── Chalet Details Modal ─────────────────────────────────────────────────────
@@ -253,6 +254,24 @@ function ChaletCard({
     } catch { return false; }
   });
 
+  // Images array with fallback
+  const images = chalet.images?.length
+    ? chalet.images
+    : ["https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?q=80&w=800"];
+
+  const [imgIndex, setImgIndex] = useState(0);
+
+  // Auto-slide images every 3 seconds
+  useEffect(() => {
+    if (images.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setImgIndex((prev) => (prev + 1) % images.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [images]);
+
   function toggleLike(e: React.MouseEvent) {
     e.stopPropagation();
     try {
@@ -262,10 +281,6 @@ function ChaletCard({
       setLiked(!liked);
     } catch { setLiked(!liked); }
   }
-
-  const imgSrc =
-    chalet.images?.[0] ??
-    "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?q=80&w=800";
 
   const featureList = chalet.features
     ? chalet.features.split(/[-،,]/).map((f) => f.trim()).filter(Boolean)
@@ -278,15 +293,30 @@ function ChaletCard({
 
   return (
     <div ref={ref} className="chalet-card reveal">
-      {/* Image */}
+      {/* Image with auto-slide */}
       <div className="relative overflow-hidden" style={{ height: 220 }}>
         <Image
-          src={imgSrc}
+          src={images[imgIndex]}
           alt={chalet.name}
           fill
           className="object-cover chalet-img"
           sizes="(max-width:768px) 100vw, 33vw"
         />
+        
+        {/* Image dots indicator */}
+        {images.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+            {images.map((_, i) => (
+              <span
+                key={i}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${
+                  i === imgIndex ? "bg-white w-3" : "bg-white/50"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+        
         <div className="absolute top-3 right-3 flex gap-2">
           <span className={chalet.type === "youth" ? "badge-sea" : "badge-gold"}>
             {badgeLabel}
@@ -406,6 +436,11 @@ export function ChaletsSection() {
       .catch(() => { setError(true); setLoading(false); });
   }, []);
 
+  // Sort by bookingsCount (most popular first) and take only top 3
+  const displayedChalets = [...chalets]
+    .sort((a, b) => (b.bookingsCount || 0) - (a.bookingsCount || 0))
+    .slice(0, 3);
+
   return (
     <>
       <section id="chalets" className="py-24 bg-white dark:bg-gray-950 overflow-hidden">
@@ -429,13 +464,13 @@ export function ChaletsSection() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {loading
                 ? [1, 2, 3].map((i) => <SkeletonCard key={i} />)
-                : chalets.length === 0
+                : displayedChalets.length === 0
                 ? (
                   <p className="col-span-3 text-center text-gray-400 py-10">
                     {lang === "ar" ? "لا توجد شاليهات بعد" : "No chalets yet"}
                   </p>
                 )
-                : chalets.map((c) => (
+                : displayedChalets.map((c) => (
                   <ChaletCard
                     key={c.id}
                     chalet={c}
@@ -448,9 +483,12 @@ export function ChaletsSection() {
           )}
 
           <div ref={btnRef} className="reveal text-center mt-12">
-            <a href="#" className="btn-primary px-10 py-4 text-base inline-block">
+            <button
+              onClick={() => window.location.href = "/chalets"}
+              className="btn-primary px-10 py-4 text-base"
+            >
               {tr(t.chalets.viewAll, lang)}
-            </a>
+            </button>
           </div>
         </div>
       </section>
