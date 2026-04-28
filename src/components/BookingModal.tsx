@@ -140,17 +140,21 @@ function MiniCalendar({
     const nd = new Date(viewYear, viewMonth + 1, 1);
     setViewYear(nd.getFullYear()); setViewMonth(nd.getMonth());
   }
-
-  return (
+return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-sky-100 dark:border-sky-900 p-4 shadow-sm">
+      {/* الرأس: التنقل بين الشهور */}
       <div className="flex items-center justify-between mb-3">
         <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-sky-50 text-sky-600 font-bold">‹</button>
         <span className="font-bold text-gray-700 dark:text-gray-200 text-sm">{MONTHS[viewMonth]} {viewYear}</span>
         <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-sky-50 text-sky-600 font-bold">›</button>
       </div>
+
+      {/* أيام الأسبوع */}
       <div className="grid grid-cols-7 gap-0.5 mb-1">
         {DAYS.map(n => <div key={n} className="text-center text-xs font-bold text-gray-400 py-1">{n}</div>)}
       </div>
+
+      {/* شبكة الأيام */}
       <div className="grid grid-cols-7 gap-0.5">
         {days.map((d, i) => (
           <div key={i} className="flex items-center justify-center">
@@ -165,15 +169,36 @@ function MiniCalendar({
           </div>
         ))}
       </div>
-      <div className="flex flex-wrap gap-2 mt-3 text-xs text-gray-500">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 bg-yellow-100 rounded inline-block"/>ويك إند +20%</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 bg-green-100 rounded inline-block"/>موسم +10%</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-100 rounded inline-block"/>محجوز</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 bg-gray-100 rounded inline-block"/>غير متاح</span>
+
+      {/* دليل الألوان المحدث والمطابق للكود الجديد */}
+      <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 pt-4 border-t border-gray-50 dark:border-gray-700 text-[10px] text-gray-500">
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 bg-sky-600 rounded-full inline-block shadow-sm"/>
+          <span>حجزك</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 bg-sky-200 rounded inline-block"/>
+          <span>مدة الإقامة</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 bg-amber-100 rounded inline-block"/>
+          <span>ويك إند (+20%)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 bg-green-100 rounded inline-block"/>
+          <span>موسم (+10%)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 bg-orange-200 rounded inline-block"/>
+          <span>ذروة (+30%)</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-3 h-3 bg-gray-200 rounded inline-block"/>
+          <span>غير متاح</span>
+        </div>
       </div>
     </div>
   );
-}
 
 // ─── Main Modal ───────────────────────────────────────────────────────────────
 export function BookingModal({ chalet, onClose }: BookingModalProps) {
