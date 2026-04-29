@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { Logo } from "./Logo";
@@ -12,9 +12,7 @@ export function Navbar() {
   const { theme, setTheme } = useTheme();
   const [scrolled,   setScrolled]   = useState(false);
   const [menuOpen,   setMenuOpen]   = useState(false);
-  const [dashClicks, setDashClicks] = useState(0);
-  const [mounted,    setMounted]    = useState(false);
-  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [mounted, setMounted] = useState(false);
   const isDark = theme === "dark";
 
   useEffect(() => {
@@ -32,19 +30,7 @@ export function Navbar() {
     { href: "#location",     label: t.nav.location },
   ];
 
-  function handleDashClick() {
-    const next = dashClicks + 1;
-    setDashClicks(next);
-    if (clickTimer.current) clearTimeout(clickTimer.current);
-    if (next >= 3) {
-      setDashClicks(0);
-      window.location.href = "/login";
-    } else {
-      clickTimer.current = setTimeout(() => setDashClicks(0), 2000);
-    }
-  }
-
-  const navBg = scrolled
+ = scrolled
     ? isDark ? "bg-gray-950/95 backdrop-blur-xl shadow-2xl" : "bg-white/97 backdrop-blur-xl shadow-lg"
     : "bg-transparent";
 
@@ -103,7 +89,8 @@ export function Navbar() {
             <button className="dark-toggle" onClick={() => setTheme(isDark ? "light" : "dark")} aria-label="Toggle dark mode"/>
           )}
 
-          <a href="#contact" className="btn-primary text-sm hidden sm:block px-5 py-2.5">
+
+          <a href="#chalets" className="btn-primary text-sm hidden sm:block px-5 py-2.5">
             {tr(t.nav.bookNow, lang)}
           </a>
         </div>
@@ -133,7 +120,7 @@ export function Navbar() {
 
           {/* Book now + Language — mobile */}
           <div className="p-3 flex flex-col gap-2 sm:hidden">
-            <a href="#contact" onClick={() => setMenuOpen(false)}
+            <a href="#chalets" onClick={() => setMenuOpen(false)}
               className="btn-primary block text-center text-sm py-3 w-full rounded-xl">
               {tr(t.nav.bookNow, lang)}
             </a>
@@ -143,13 +130,13 @@ export function Navbar() {
             </div>
           </div>
 
-          {/* Hidden dashboard dot */}
+          {/* Hidden dashboard button */}
           <div className={`flex justify-center py-2.5 ${isDark ? "border-t border-gray-800" : "border-t border-gray-50"}`}>
             <button
-              onClick={handleDashClick}
+              onClick={() => { window.location.href = "/login"; }}
               aria-hidden="true"
               tabIndex={-1}
-              className="w-3 h-3 rounded-full bg-sky-500 opacity-40 hover:opacity-70 transition-opacity cursor-default select-none"
+              className="w-16 h-2 rounded-sm bg-sky-500 opacity-30 hover:opacity-60 transition-opacity cursor-default select-none"
             />
           </div>
         </div>
