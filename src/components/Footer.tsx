@@ -1,3 +1,4 @@
+import Link from "next/link";
 "use client";
 
 import { Logo } from "./Logo";
@@ -138,8 +139,8 @@ export function Footer() {
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
           <span>{tr(t.footer.copy, lang)}</span>
           <div className="flex gap-5">
-            <a href="#" className="hover:text-sky-400 transition-colors">{tr(t.footer.privacy, lang)}</a>
-            <a href="#" className="hover:text-sky-400 transition-colors">{tr(t.footer.terms, lang)}</a>
+            <Link href="/privacy" className="hover:text-sky-400 transition-colors">{tr(t.footer.privacy, lang)}</Link>
+            <Link href="/terms" className="hover:text-sky-400 transition-colors">{tr(t.footer.terms, lang)}</Link>
           </div>
         </div>
       </div>
