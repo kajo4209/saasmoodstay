@@ -30,7 +30,7 @@ export function Navbar() {
     { href: "#location",     label: t.nav.location },
   ];
 
- = scrolled
+  const navBg = scrolled
     ? isDark ? "bg-gray-950/95 backdrop-blur-xl shadow-2xl" : "bg-white/97 backdrop-blur-xl shadow-lg"
     : "bg-transparent";
 
