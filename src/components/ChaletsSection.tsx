@@ -6,6 +6,7 @@ import { useLang } from "@/context/LanguageContext";
 import { t, tr } from "@/lib/translations";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { BookingModal } from "./BookingModal";
+import { LightboxModal } from "./LightboxModal";
 
 // ─── Icons ────────────────────────────────────────────────────────────────────
 const HeartIcon = ({ filled }: { filled: boolean }) => (
@@ -77,6 +78,8 @@ function ChaletDetailsModal({
 }) {
   const { lang } = useLang();
   const isAr = lang === "ar";
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   const featureList = chalet.features
     ? chalet.features.split(/[-،,]/).map((f) => f.trim()).filter(Boolean)
@@ -87,160 +90,236 @@ function ChaletDetailsModal({
     : ["https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?q=80&w=800"];
 
   const [imgIdx, setImgIdx] = useState(0);
+  const [isInteracting, setIsInteracting] = useState(false);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+
+  // Auto slide for modal
+  useEffect(() => {
+    if (images.length <= 1 || isInteracting) return;
+
+    const interval = setInterval(() => {
+      setImgIdx((prev) => (prev + 1) % images.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [images.length, isInteracting]);
+
+  // Preload next image
+  useEffect(() => {
+    const nextIndex = (imgIdx + 1) % images.length;
+    const nextImage = new window.Image();
+    nextImage.src = images[nextIndex];
+  }, [imgIdx, images]);
 
   const badgeLabel =
     chalet.type === "youth"
       ? isAr ? "شباب" : "Youth"
       : isAr ? "عائلات" : "Family";
 
-  function nextImage() {
+  const nextImage = () => {
     setImgIdx((prev) => (prev + 1) % images.length);
-  }
+  };
 
-  function prevImage() {
+  const prevImage = () => {
     setImgIdx((prev) => (prev - 1 + images.length) % images.length);
-  }
+  };
+
+  // Swipe handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsInteracting(true);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStart - touchEnd > 50) {
+      nextImage();
+    }
+    if (touchEnd - touchStart > 50) {
+      prevImage();
+    }
+    setTouchStart(0);
+    setTouchEnd(0);
+    setTimeout(() => setIsInteracting(false), 300);
+  };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
-      onClick={onClose}
-    >
+    <>
       <div
-        className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full overflow-y-auto"
-        style={{ maxWidth: 680, maxHeight: "90vh", direction: isAr ? "rtl" : "ltr" }}
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+        onClick={onClose}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 rounded-t-3xl">
-          <div>
-            <h2 className="font-black text-xl text-gray-800 dark:text-white">{chalet.name}</h2>
-            <p className="text-sm text-sky-600 font-semibold">
-              {isAr ? "تفاصيل الشاليه" : "Chalet Details"}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 transition-all"
-          >
-            <CloseIcon />
-          </button>
-        </div>
-
-        <div className="p-6 space-y-5">
-          <div className="relative rounded-2xl overflow-hidden" style={{ height: 260 }}>
-            <Image
-              src={images[imgIdx]}
-              alt={chalet.name}
-              fill
-              className="object-cover"
-              sizes="680px"
-            />
-            
-            {images.length > 1 && (
-              <>
-                <button
-                  onClick={prevImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all z-10"
-                >
-                  <ChevronLeft />
-                </button>
-                <button
-                  onClick={nextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all z-10"
-                >
-                  <ChevronRight />
-                </button>
-              </>
-            )}
-            
-            {images.length > 1 && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-                {images.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setImgIdx(i)}
-                    className={`rounded-full transition-all ${
-                      i === imgIdx ? "bg-white w-5 h-2" : "bg-white/50 w-2 h-2"
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-            
-            <span className={`absolute top-3 right-3 ${chalet.type === "youth" ? "badge-sea" : "badge-gold"}`}>
-              {badgeLabel}
-            </span>
-            
-            <div className="absolute bottom-3 right-3 bg-white/95 rounded-full px-4 py-1.5 shadow-lg">
-              <span className="text-sky-700 font-black">{chalet.price.toLocaleString()}</span>
-              <span className="text-gray-500 text-sm"> {isAr ? "ج/ليلة" : "EGP/night"}</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-sky-50 dark:bg-sky-900/20 rounded-2xl p-4 text-center">
-              <div className="text-2xl font-black text-sky-700">{chalet.rooms}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{isAr ? "غرف نوم" : "Bedrooms"}</div>
-            </div>
-            <div className="bg-sky-50 dark:bg-sky-900/20 rounded-2xl p-4 text-center">
-              <div className="text-2xl font-black text-sky-700">{chalet.price.toLocaleString()}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{isAr ? "ج/ليلة" : "EGP/night"}</div>
-            </div>
-          </div>
-
-          {chalet.description && (
+        <div
+          className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full overflow-y-auto"
+          style={{ maxWidth: 680, maxHeight: "90vh", direction: isAr ? "rtl" : "ltr" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 rounded-t-3xl">
             <div>
-              <h4 className="font-bold text-gray-700 dark:text-gray-200 mb-2 text-sm">
-                {isAr ? "الوصف" : "Description"}
-              </h4>
-              <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
-                {chalet.description}
+              <h2 className="font-black text-xl text-gray-800 dark:text-white">{chalet.name}</h2>
+              <p className="text-sm text-sky-600 font-semibold">
+                {isAr ? "تفاصيل الشاليه" : "Chalet Details"}
               </p>
             </div>
-          )}
+            <button
+              onClick={onClose}
+              className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-500 transition-all active:scale-95"
+            >
+              <CloseIcon />
+            </button>
+          </div>
 
-          {featureList.length > 0 && (
-            <div>
-              <h4 className="font-bold text-gray-700 dark:text-gray-200 mb-2 text-sm">
-                {isAr ? "المميزات" : "Features"}
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {featureList.map((f, i) => (
-                  <span
-                    key={i}
-                    className="px-3 py-1.5 text-sm rounded-full bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 border border-sky-100 dark:border-sky-800 font-medium"
+          <div className="p-6 space-y-5">
+            <div 
+              className="relative rounded-2xl overflow-hidden cursor-zoom-in active:scale-[0.99] transition-transform duration-200" 
+              style={{ height: 260 }}
+              onMouseEnter={() => setIsInteracting(true)}
+              onMouseLeave={() => setIsInteracting(false)}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              onClick={() => {
+                setLightboxIndex(imgIdx);
+                setLightboxOpen(true);
+              }}
+            >
+              <Image
+                src={images[imgIdx]}
+                alt={chalet.name}
+                fill
+                className="object-cover transition-transform duration-300 hover:scale-105"
+                sizes="680px"
+                loading="lazy"
+                priority={imgIdx === 0}
+              />
+              
+              {images.length > 1 && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      prevImage();
+                    }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all z-10 active:scale-95"
                   >
-                    ✓ {f}
-                  </span>
-                ))}
+                    <ChevronLeft />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      nextImage();
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all z-10 active:scale-95"
+                  >
+                    <ChevronRight />
+                  </button>
+                </>
+              )}
+              
+              {images.length > 1 && (
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                  {images.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setImgIdx(i);
+                      }}
+                      className={`rounded-full transition-all active:scale-95 ${
+                        i === imgIdx ? "bg-white w-5 h-2" : "bg-white/50 w-2 h-2"
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+              
+              <span className={`absolute top-3 right-3 ${chalet.type === "youth" ? "badge-sea" : "badge-gold"}`}>
+                {badgeLabel}
+              </span>
+              
+              <div className="absolute bottom-3 right-3 bg-white/95 rounded-full px-4 py-1.5 shadow-lg">
+                <span className="text-sky-700 font-black">{chalet.price.toLocaleString()}</span>
+                <span className="text-gray-500 text-sm"> {isAr ? "ج/ليلة" : "EGP/night"}</span>
               </div>
             </div>
-          )}
 
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <PinIcon />
-            <span>{isAr ? "قرية غزالة الوادي، الكيلو 142 الساحل الشمالي" : "Ghazala Valley, Kilo 142 North Coast"}</span>
-          </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-sky-50 dark:bg-sky-900/20 rounded-2xl p-4 text-center">
+                <div className="text-2xl font-black text-sky-700">{chalet.rooms}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{isAr ? "غرف نوم" : "Bedrooms"}</div>
+              </div>
+              <div className="bg-sky-50 dark:bg-sky-900/20 rounded-2xl p-4 text-center">
+                <div className="text-2xl font-black text-sky-700">{chalet.price.toLocaleString()}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{isAr ? "ج/ليلة" : "EGP/night"}</div>
+              </div>
+            </div>
 
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 text-sm text-amber-800 dark:text-amber-300">
-            💡 {isAr
-              ? `العربون المطلوب عند الحجز: ${Math.round(chalet.price * 0.15).toLocaleString()} ج.م (15% من سعر الليلة)`
-              : `Required deposit: ${Math.round(chalet.price * 0.15).toLocaleString()} EGP (15% of nightly rate)`}
-          </div>
+            {chalet.description && (
+              <div>
+                <h4 className="font-bold text-gray-700 dark:text-gray-200 mb-2 text-sm">
+                  {isAr ? "الوصف" : "Description"}
+                </h4>
+                <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                  {chalet.description}
+                </p>
+              </div>
+            )}
 
-          <div className="flex flex-col sm:flex-row gap-3 pt-1">
-            <button
-              onClick={onBook}
-              className="flex-1 btn-primary py-3.5 font-bold flex items-center justify-center gap-2"
-            >
-              <CalendarIcon />
-              {isAr ? "احجز الآن" : "Book Now"}
-            </button>
+            {featureList.length > 0 && (
+              <div>
+                <h4 className="font-bold text-gray-700 dark:text-gray-200 mb-2 text-sm">
+                  {isAr ? "المميزات" : "Features"}
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {featureList.map((f, i) => (
+                    <span
+                      key={i}
+                      className="px-3 py-1.5 text-sm rounded-full bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-300 border border-sky-100 dark:border-sky-800 font-medium"
+                    >
+                      ✓ {f}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <PinIcon />
+              <span>{isAr ? "قرية غزالة الوادي، الكيلو 142 الساحل الشمالي" : "Ghazala Valley, Kilo 142 North Coast"}</span>
+            </div>
+
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 text-sm text-amber-800 dark:text-amber-300">
+              💡 {isAr
+                ? `العربون المطلوب عند الحجز: ${Math.round(chalet.price * 0.15).toLocaleString()} ج.م (15% من سعر الليلة)`
+                : `Required deposit: ${Math.round(chalet.price * 0.15).toLocaleString()} EGP (15% of nightly rate)`}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-1">
+              <button
+                onClick={onBook}
+                className="flex-1 btn-primary py-3.5 font-bold flex items-center justify-center gap-2 active:scale-95"
+              >
+                <CalendarIcon />
+                {isAr ? "احجز الآن" : "Book Now"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {lightboxOpen && (
+        <LightboxModal
+          images={images}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -270,28 +349,63 @@ function ChaletCard({
     : ["https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?q=80&w=800"];
 
   const [imgIndex, setImgIndex] = useState(0);
+  const [isInteracting, setIsInteracting] = useState(false);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
 
+  // Auto slide - يتوقف عند أي تفاعل
   useEffect(() => {
-    if (images.length <= 1) return;
+    if (images.length <= 1 || isInteracting) return;
 
     const interval = setInterval(() => {
       setImgIndex((prev) => (prev + 1) % images.length);
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [images]);
+  }, [images, isInteracting]);
 
-  function nextImage(e: React.MouseEvent) {
+  // Preload next image
+  useEffect(() => {
+    const nextIndex = (imgIndex + 1) % images.length;
+    const nextImage = new window.Image();
+    nextImage.src = images[nextIndex];
+  }, [imgIndex, images]);
+
+  // Swipe handlers للموبايل
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsInteracting(true);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStart - touchEnd > 50) {
+      // swipe left →下一张
+      setImgIndex((prev) => (prev + 1) % images.length);
+    }
+    if (touchEnd - touchStart > 50) {
+      // swipe right →上一张
+      setImgIndex((prev) => (prev - 1 + images.length) % images.length);
+    }
+    setTouchStart(0);
+    setTouchEnd(0);
+    setTimeout(() => setIsInteracting(false), 300);
+  };
+
+  const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
     setImgIndex((prev) => (prev + 1) % images.length);
-  }
+  };
 
-  function prevImage(e: React.MouseEvent) {
+  const prevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
     setImgIndex((prev) => (prev - 1 + images.length) % images.length);
-  }
+  };
 
-  function toggleLike(e: React.MouseEvent) {
+  const toggleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       const favs: number[] = JSON.parse(localStorage.getItem("moodstay_favs") || "[]");
@@ -299,7 +413,7 @@ function ChaletCard({
       localStorage.setItem("moodstay_favs", JSON.stringify(newFavs));
       setLiked(!liked);
     } catch { setLiked(!liked); }
-  }
+  };
 
   const featureList = chalet.features
     ? chalet.features.split(/[-،,]/).map((f) => f.trim()).filter(Boolean)
@@ -312,26 +426,37 @@ function ChaletCard({
 
   return (
     <div ref={ref} className="chalet-card reveal">
-      <div className="relative overflow-hidden" style={{ height: 220 }}>
+      <div 
+        className="relative overflow-hidden cursor-zoom-in active:scale-[0.98] transition-transform duration-200" 
+        style={{ height: 220 }}
+        onMouseEnter={() => setIsInteracting(true)}
+        onMouseLeave={() => setIsInteracting(false)}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onClick={() => onDetails(chalet)}
+      >
         <Image
           src={images[imgIndex]}
           alt={chalet.name}
           fill
           className="object-cover chalet-img"
           sizes="(max-width:768px) 100vw, 33vw"
+          loading="lazy"
+          priority={imgIndex === 0}
         />
         
         {images.length > 1 && (
           <>
             <button
               onClick={prevImage}
-              className="absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all z-10"
+              className="absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all z-10 active:scale-95"
             >
               <ChevronLeft />
             </button>
             <button
               onClick={nextImage}
-              className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all z-10"
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center transition-all z-10 active:scale-95"
             >
               <ChevronRight />
             </button>
@@ -343,7 +468,7 @@ function ChaletCard({
             {images.map((_, i) => (
               <span
                 key={i}
-                className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer ${
+                className={`w-1.5 h-1.5 rounded-full transition-all cursor-pointer active:scale-95 ${
                   i === imgIndex ? "bg-white w-3" : "bg-white/50"
                 }`}
                 onClick={(e) => {
@@ -361,7 +486,7 @@ function ChaletCard({
           </span>
         </div>
         <button
-          className={`absolute top-3 left-3 heart-btn ${liked ? "text-red-500 bg-red-50" : "text-gray-400"}`}
+          className={`absolute top-3 left-3 heart-btn ${liked ? "text-red-500 bg-red-50" : "text-gray-400"} active:scale-95`}
           onClick={toggleLike}
           aria-label="Favorite"
         >
@@ -415,7 +540,7 @@ function ChaletCard({
         <div className="flex flex-col gap-2 mt-1">
           <button
             onClick={() => onDetails(chalet)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full font-bold text-sm border-2 border-sky-200 text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition-all"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-full font-bold text-sm border-2 border-sky-200 text-sky-600 hover:bg-sky-50 dark:hover:bg-sky-900/20 transition-all active:scale-95"
           >
             <InfoIcon />
             {isAr ? "عرض التفاصيل" : "View Details"}
@@ -423,7 +548,7 @@ function ChaletCard({
 
           <button
             onClick={() => onBook(chalet)}
-            className="w-full btn-primary py-2.5 text-sm font-bold flex items-center justify-center gap-2"
+            className="w-full btn-primary py-2.5 text-sm font-bold flex items-center justify-center gap-2 active:scale-95"
           >
             <CalendarIcon />
             {isAr ? "احجز الآن" : "Book Now"}
@@ -518,7 +643,7 @@ export function ChaletsSection() {
                 <div className="text-center mt-12">
                   <button
                     onClick={() => setShowAll(!showAll)}
-                    className="btn-primary px-10 py-4 text-base inline-block"
+                    className="btn-primary px-10 py-4 text-base inline-block active:scale-95"
                   >
                     {showAll 
                       ? (lang === "ar" ? "عرض أقل" : "Show Less")
