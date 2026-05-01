@@ -143,7 +143,7 @@ export default function TermsPage() {
             فريقنا متاح للإجابة على جميع استفساراتك عبر واتساب
           </p>
           <a
-            href="https://wa.me/201000000000"
+             href="https://wa.me/201201543050?text=مرحبًا، أود الاستفسار عن الشروط والأحكام الخاصة بالحجز في الشاليه"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors"
