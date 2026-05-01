@@ -24,14 +24,87 @@ interface Booking {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString("ar-EG", { year: "numeric", month: "short", day: "numeric" });
+  return new Date(iso).toLocaleDateString("ar-EG", {
+    year: "numeric", month: "short", day: "numeric",
+  });
 }
 
+// كود دخول فريد لكل حجز — مبني على ID + تاريخ الدخول
+function generateAccessCode(bookingId: number, checkIn: string): string {
+  const d    = new Date(checkIn);
+  const day  = String(d.getDate()).padStart(2, "0");
+  const mon  = String(d.getMonth() + 1).padStart(2, "0");
+  const seed = (bookingId * 7919 + d.getFullYear() + parseInt(mon) * 31 + parseInt(day) * 13) % 900000 + 100000;
+  return `GZ-${seed}`;
+}
+
+// رسالة واتساب كاملة للعميل
+function buildWhatsAppMessage(b: Booking, code: string): string {
+  const remaining = b.totalPrice - (b.deposit || Math.round(b.totalPrice * 0.15));
+  const msg = `✅ تأكيد حجز Moodstay
+
+مرحباً ${b.guestName}،
+يسعدنا تأكيد حجزك في شاليهات قرية غزالة الوادي 🏖️
+
+📋 *تفاصيل الحجز:*
+• الشاليه: ${b.chalet?.name}
+• تاريخ الدخول: ${fmtDate(b.checkIn)}
+• تاريخ الخروج: ${fmtDate(b.checkOut)}
+• عدد الليالي: ${b.nights}
+
+💰 *تفاصيل المبالغ:*
+• إجمالي الحجز: ${b.totalPrice.toLocaleString()} ج.م
+• العربون المدفوع: ${(b.deposit || Math.round(b.totalPrice * 0.15)).toLocaleString()} ج.م
+• المتبقي عند الوصول: ${remaining.toLocaleString()} ج.م
+
+🔐 *كود دخول القرية:*
+┌─────────────────┐
+│   ${code}   │
+└─────────────────┘
+⚠️ الكود صالح فقط من ${fmtDate(b.checkIn)} حتى ${fmtDate(b.checkOut)}
+احتفظ بهذا الكود — ستحتاجه عند بوابة القرية.
+
+📍 قرية غزالة الوادي، الكيلو 142 الساحل الشمالي
+
+نتمنى لك إقامة رائعة! 🌊
+— فريق Moodstay`;
+  return encodeURIComponent(msg);
+}
+
+function whatsAppLink(phone: string, message: string): string {
+  const clean = phone.replace(/\D/g, "");
+  const num   = clean.startsWith("0") ? "2" + clean : clean.startsWith("20") ? clean : "20" + clean;
+  return `https://wa.me/${num}?text=${message}`;
+}
+
+// ─── WhatsApp Confirm Button ──────────────────────────────────────────────────
+function WhatsAppConfirmBtn({ booking }: { booking: Booking }) {
+  const code    = generateAccessCode(booking.id, booking.checkIn);
+  const message = buildWhatsAppMessage(booking, code);
+  const link    = whatsAppLink(booking.phone, message);
+  return (
+    <a
+      href={link}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={e => e.stopPropagation()}
+      title="إرسال تأكيد الحجز للعميل"
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-green-100 text-green-700 hover:bg-green-200 transition-all whitespace-nowrap"
+    >
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+      </svg>
+      إرسال التأكيد
+    </a>
+  );
+}
+
+// ─── Status Badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: BookingStatus }) {
   const map: Record<BookingStatus, { label: string; cls: string }> = {
     pending:   { label: "قيد الانتظار", cls: "bg-yellow-100 text-yellow-800 border-yellow-200" },
-    confirmed: { label: "مؤكد",         cls: "bg-green-100 text-green-800 border-green-200"  },
-    cancelled: { label: "ملغي",         cls: "bg-red-100 text-red-800 border-red-200"        },
+    confirmed: { label: "مؤكد",         cls: "bg-green-100 text-green-800 border-green-200"   },
+    cancelled: { label: "ملغي",         cls: "bg-red-100 text-red-800 border-red-200"         },
   };
   const { label, cls } = map[status] ?? map.pending;
   return (
@@ -53,14 +126,17 @@ function StatCard({ title, value, icon, color }: { title: string; value: string 
   );
 }
 
-// ─── Booking Detail Modal ─────────────────────────────────────────────────────
+// ─── Booking Detail Modal (بدون زر واتساب — اتنقل للجدول) ───────────────────
 function BookingDetailModal({ booking, onClose, onStatusChange }: {
   booking: Booking;
   onClose: () => void;
   onStatusChange: (id: number, status: BookingStatus) => Promise<void>;
 }) {
-  const [loading, setLoading] = useState(false);
+  const [loading,  setLoading]  = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const code      = generateAccessCode(booking.id, booking.checkIn);
+  const depositAmt = booking.deposit || Math.round(booking.totalPrice * 0.15);
+  const remaining  = booking.totalPrice - depositAmt;
 
   async function changeStatus(s: BookingStatus) {
     setLoading(true); setErrorMsg("");
@@ -71,8 +147,6 @@ function BookingDetailModal({ booking, onClose, onStatusChange }: {
       setErrorMsg(e instanceof Error ? e.message : "حدث خطأ");
     } finally { setLoading(false); }
   }
-
-  const depositAmt = booking.deposit || Math.round(booking.totalPrice * 0.15);
 
   return (
     <div
@@ -131,11 +205,31 @@ function BookingDetailModal({ booking, onClose, onStatusChange }: {
             <span className="text-gray-600">إجمالي الحجز</span>
             <span className="font-black text-gray-800 dark:text-white">{booking.totalPrice.toLocaleString()} ج.م</span>
           </div>
-          <div className="flex justify-between text-sm font-bold text-amber-700 border-t border-sky-200 pt-2 mt-1">
-            <span>💳 العربون المطلوب (15%)</span>
-            <span>{depositAmt.toLocaleString()} ج.م</span>
+          <div className="flex justify-between text-sm text-amber-700 border-t border-sky-200 pt-2">
+            <span className="font-bold">💳 العربون المدفوع (15%)</span>
+            <span className="font-black">{depositAmt.toLocaleString()} ج.م</span>
+          </div>
+          <div className="flex justify-between text-sm text-gray-600 border-t border-sky-200 pt-2">
+            <span>المتبقي عند الوصول</span>
+            <span className="font-bold">{remaining.toLocaleString()} ج.م</span>
           </div>
         </div>
+
+        {/* Access Code — يظهر فقط للحجوزات المؤكدة */}
+        {booking.status === "confirmed" && (
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-800 rounded-2xl p-4">
+            <div className="text-xs text-green-600 font-bold mb-2">🔐 كود دخول القرية</div>
+            <div className="flex items-center justify-between">
+              <div className="font-black text-2xl text-green-700 tracking-widest">{code}</div>
+              <div className="text-xs text-green-600 text-left">
+                صالح من<br/>
+                <span className="font-bold">{fmtDate(booking.checkIn)}</span><br/>
+                حتى<br/>
+                <span className="font-bold">{fmtDate(booking.checkOut)}</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Features */}
         {booking.features && (
@@ -157,16 +251,12 @@ function BookingDetailModal({ booking, onClose, onStatusChange }: {
           </div>
         )}
 
-        {/* Dates meta */}
         <div className="text-xs text-gray-400 text-center">
           تاريخ تقديم الطلب: {fmtDate(booking.createdAt)}
         </div>
 
-        {/* Error */}
         {errorMsg && (
-          <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-            ❌ {errorMsg}
-          </div>
+          <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">❌ {errorMsg}</div>
         )}
 
         {/* Actions */}
@@ -188,23 +278,23 @@ function BookingDetailModal({ booking, onClose, onStatusChange }: {
             </button>
           </div>
         )}
-        {booking.status !== "pending" && (
-          <div className="text-center text-sm text-gray-400 py-2">
-            الحجز {booking.status === "confirmed" ? "مؤكد ✅" : "ملغي ❌"} — لا يمكن تعديل الحالة
+
+        {booking.status === "confirmed" && (
+          <div className="flex gap-3 pt-2">
+            <WhatsAppConfirmBtn booking={booking}/>
+            <button
+              onClick={() => changeStatus("cancelled")}
+              disabled={loading}
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-full font-bold text-sm border-2 border-red-300 text-red-500 hover:bg-red-50 transition-all disabled:opacity-60 text-xs"
+            >
+              ❌ إلغاء الحجز
+            </button>
           </div>
         )}
-        {/* WhatsApp client */}
-        <a
-          href={`https://wa.me/${booking.phone.replace(/\D/g, "")}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-full font-bold text-sm border-2 border-green-400 text-green-600 hover:bg-green-50 transition-all"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-          </svg>
-          تواصل مع العميل عبر واتساب
-        </a>
+
+        {booking.status === "cancelled" && (
+          <div className="text-center text-sm text-gray-400 py-2">الحجز ملغي ❌</div>
+        )}
       </div>
     </div>
   );
@@ -212,12 +302,12 @@ function BookingDetailModal({ booking, onClose, onStatusChange }: {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function BookingsPage() {
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [bookings,     setBookings]     = useState<Booking[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [search,       setSearch]       = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | BookingStatus>("all");
-  const [selected, setSelected] = useState<Booking | null>(null);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [selected,     setSelected]     = useState<Booking | null>(null);
+  const [toast,        setToast]        = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   function showToast(msg: string, type: "success" | "error" = "success") {
     setToast({ msg, type });
@@ -227,7 +317,7 @@ export default function BookingsPage() {
   const loadBookings = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/bookings");
+      const res  = await fetch("/api/bookings");
       const data = await res.json();
       setBookings(Array.isArray(data) ? data : []);
     } catch { setBookings([]); }
@@ -246,19 +336,20 @@ export default function BookingsPage() {
       const data = await res.json();
       throw new Error(data.error || "فشل تحديث الحالة");
     }
-    showToast(status === "confirmed" ? "✅ تم تأكيد الحجز" : "❌ تم إلغاء الحجز", status === "confirmed" ? "success" : "error");
+    showToast(
+      status === "confirmed" ? "✅ تم تأكيد الحجز" : "❌ تم إلغاء الحجز",
+      status === "confirmed" ? "success" : "error"
+    );
     await loadBookings();
   }
 
-  // Stats
   const total     = bookings.length;
   const pending   = bookings.filter(b => b.status === "pending").length;
   const confirmed = bookings.filter(b => b.status === "confirmed").length;
   const revenue   = bookings.filter(b => b.status === "confirmed").reduce((s, b) => s + b.totalPrice, 0);
 
-  // Filtered
   const filtered = bookings.filter(b => {
-    const q = search.toLowerCase();
+    const q           = search.toLowerCase();
     const matchSearch =
       b.guestName?.toLowerCase().includes(q) ||
       b.phone?.includes(q) ||
@@ -280,7 +371,7 @@ export default function BookingsPage() {
         </div>
       )}
 
-      {/* Page Title */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-gray-800 dark:text-white">🗓️ إدارة الحجوزات</h1>
@@ -296,10 +387,10 @@ export default function BookingsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard title="إجمالي الطلبات"     value={total}                          icon="📋" color="border-gray-200" />
-        <StatCard title="قيد الانتظار"        value={pending}                        icon="⏳" color="border-yellow-200" />
-        <StatCard title="مؤكدة"               value={confirmed}                      icon="✅" color="border-green-200" />
-        <StatCard title="إيرادات مؤكدة"       value={revenue.toLocaleString() + " ج"} icon="💰" color="border-sky-200" />
+        <StatCard title="إجمالي الطلبات"  value={total}                           icon="📋" color="border-gray-200"  />
+        <StatCard title="قيد الانتظار"     value={pending}                         icon="⏳" color="border-yellow-200"/>
+        <StatCard title="مؤكدة"            value={confirmed}                       icon="✅" color="border-green-200" />
+        <StatCard title="إيرادات مؤكدة"    value={revenue.toLocaleString() + " ج"} icon="💰" color="border-sky-200"   />
       </div>
 
       {/* Filters */}
@@ -313,7 +404,7 @@ export default function BookingsPage() {
             className="w-full border border-gray-200 dark:border-gray-700 rounded-xl pr-9 pl-4 py-2.5 text-sm focus:outline-none focus:border-sky-400 dark:bg-gray-800 dark:text-white"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {(["all","pending","confirmed","cancelled"] as const).map(s => (
             <button
               key={s}
@@ -333,7 +424,7 @@ export default function BookingsPage() {
       {/* Table */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm" style={{ minWidth: 800 }}>
+          <table className="w-full text-sm" style={{ minWidth: 860 }}>
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
                 {["#", "الشاليه", "العميل", "الهاتف", "الدخول", "الخروج", "الليالي", "الإجمالي", "العربون", "الحالة", "الإجراء"].map(h => (
@@ -347,7 +438,7 @@ export default function BookingsPage() {
                   <tr key={i} className="border-b border-gray-50 dark:border-gray-800 animate-pulse">
                     {Array(11).fill(0).map((_, j) => (
                       <td key={j} className="px-4 py-4">
-                        <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded" />
+                        <div className="h-4 bg-gray-100 dark:bg-gray-700 rounded"/>
                       </td>
                     ))}
                   </tr>
@@ -378,9 +469,13 @@ export default function BookingsPage() {
                   <td className="px-4 py-3 font-bold text-amber-600 whitespace-nowrap">
                     {(b.deposit || Math.round(b.totalPrice * 0.15)).toLocaleString()} ج
                   </td>
-                  <td className="px-4 py-3"><StatusBadge status={b.status as BookingStatus} /></td>
+                  <td className="px-4 py-3"><StatusBadge status={b.status as BookingStatus}/></td>
+
+                  {/* ─── Action column ─── */}
                   <td className="px-4 py-3">
-                    <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                    <div className="flex gap-1 items-center" onClick={e => e.stopPropagation()}>
+
+                      {/* انتظار: زر تأكيد + إلغاء */}
                       {b.status === "pending" && (
                         <>
                           <button
@@ -397,6 +492,13 @@ export default function BookingsPage() {
                           </button>
                         </>
                       )}
+
+                      {/* مؤكد: badge + زر إرسال التأكيد على واتساب */}
+                      {b.status === "confirmed" && (
+                        <WhatsAppConfirmBtn booking={b}/>
+                      )}
+
+                      {/* زر عرض دايماً */}
                       <button
                         onClick={() => setSelected(b)}
                         className="px-3 py-1.5 rounded-lg text-xs font-bold bg-sky-100 text-sky-700 hover:bg-sky-200 transition-all"
@@ -411,7 +513,6 @@ export default function BookingsPage() {
           </table>
         </div>
 
-        {/* Count */}
         {!loading && filtered.length > 0 && (
           <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-400 text-right">
             عرض {filtered.length} من {bookings.length} حجز
