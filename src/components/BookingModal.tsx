@@ -410,30 +410,32 @@ export function BookingModal({ chalet, onClose }: BookingModalProps) {
 
     // Show loading screen
     setRedirecting(true);
+     const chaletName = chalet?.name || "";
 
 const messageLines = [
-  `مرحبا ارسلت اليك طلب حجز من خلال الموقع `,
-  `أنا ${name.trim()}  :`,
+  `مرحبا، أرسلت إليك طلب حجز من خلال الموقع`,
+  `أنا ${name.trim()} :`,
 
+  // اسم الشاليه
+  chaletName ? `الشاليه: ${chaletName}` : "",
 
-  ` من ${fmt(checkIn!)} إلى ${fmt(checkOut!)}`,
-  ` عدد الليالي: ${pricing.nights}`,
+  `من ${fmt(checkIn!)} إلى ${fmt(checkOut!)}`,
+  `عدد الليالي: ${pricing.nights}`,
 
   ``,
-  ` الإجمالي: ${grandTotal.toLocaleString()} ج.م`,
-  `و جاهز أدفع العربون: ${depositAmount.toLocaleString()} ج.م`,
+  `الإجمالي: ${grandTotal.toLocaleString()} ج.م`,
+  `وجاهز أدفع العربون: ${depositAmount.toLocaleString()} ج.م`,
 
   selectedFeatures.length > 0
-    ? `✨ طلبات: ${selectedFeatures.join(" - ")}`
+    ? `طلبات: ${selectedFeatures.join(" - ")}`
     : "",
 
   notes.trim()
-    ? `📝 ملاحظات: ${notes.trim()}`
+    ? `ملاحظات: ${notes.trim()}`
     : "",
 
   ``,
-
-  `من فضلك ابعتلي حساب الدفع (InstaPay / محفة الكترونية )  للتحويل وتاكيد الحجز وشكرا جزيلا `,
+  `من فضلك ابعتلي حساب الدفع (InstaPay / محفظة إلكترونية) للتحويل وتأكيد الحجز وشكراً`,
 ].filter(Boolean);
     
     const message = encodeURIComponent(messageLines.join("\n"));
