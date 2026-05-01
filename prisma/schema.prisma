@@ -24,11 +24,7 @@ model Chalet {
 model Booking {
   id         Int      @id @default(autoincrement())
   chaletId   Int
-  chalet     Chalet   @relation(
-    fields: [chaletId],
-    references: [id],
-    onDelete: Cascade   
-  )
+  chalet     Chalet   @relation(fields: [chaletId], references: [id], onDelete: Cascade)
   guestName  String
   phone      String
   checkIn    DateTime
