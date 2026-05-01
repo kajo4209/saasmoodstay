@@ -24,7 +24,11 @@ model Chalet {
 model Booking {
   id         Int      @id @default(autoincrement())
   chaletId   Int
-  chalet     Chalet   @relation(fields: [chaletId], references: [id])
+  chalet     Chalet   @relation(
+    fields: [chaletId],
+    references: [id],
+    onDelete: Cascade   
+  )
   guestName  String
   phone      String
   checkIn    DateTime
@@ -43,7 +47,7 @@ model Booking {
 model Coupon {
   id          Int      @id @default(autoincrement())
   code        String   @unique
-  discount    Int                        // نسبة الخصم %
+  discount    Int
   type        String   @default("percent") // percent | fixed
   maxUses     Int      @default(1)
   usedCount   Int      @default(0)
